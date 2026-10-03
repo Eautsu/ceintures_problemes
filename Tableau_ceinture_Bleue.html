@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Ceinture BLEUE</title>
+<style>
+  :root {
+    --belt-color: #3E7CB1;
+    --belt-color-pale: color-mix(in srgb, var(--belt-color) 16%, white);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    background: #f4f4f4; height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--belt-color-pale); padding: 14px 24px; display: flex;
+    align-items: center; justify-content: space-between; border-bottom: 3px solid var(--belt-color);
+  }
+  header h1 { margin: 0; font-size: 1.8rem; color: #1a1a1a; }
+  header a.home { text-decoration: none; color: #555; font-size: 1.3rem; margin-right: 14px; }
+  #progress-btn {
+    font-size: 1.5rem; font-weight: bold; background: white; border: 2px solid #1a1a1a;
+    border-radius: 24px; padding: 8px 22px; cursor: pointer;
+  }
+  #progress-btn:hover { background: #eee; }
+  #session-score { font-size: 1.1rem; font-weight: bold; color: #333; }
+  #btn-fin-seance {
+    font-size: 1rem; font-weight: bold; background: #2F3B52; color: white; border: none;
+    border-radius: 20px; padding: 8px 18px; cursor: pointer;
+  }
+  #btn-fin-seance:hover { filter: brightness(1.2); }
+  #btn-mode {
+    font-size: 1rem; font-weight: bold; background: white; color: #333;
+    border: 2px solid #999; border-radius: 20px; padding: 7px 16px; cursor: pointer;
+  }
+  #btn-mode.teacher { background: #2E8B57; color: white; border-color: #2E8B57; }
+  #btn-correction:disabled {
+    background: #ccc; color: #777; cursor: not-allowed; filter: none;
+  }
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center; position: relative;
+  }
+  #carte-indicator {
+    font-size: 2.2rem; font-weight: 900; color: var(--belt-color);
+    background: var(--belt-color-pale); border: 3px solid var(--belt-color);
+    border-radius: 14px; padding: 14px 36px; margin-bottom: 40px; letter-spacing: 0.03em;
+  }
+  #palier-label { font-size: 1.5rem; color: var(--belt-color); font-weight: bold; margin-bottom: 44px; text-transform: uppercase; }
+  #calc-area { font-size: 4rem; font-weight: bold; color: #1a1a1a; margin-bottom: 56px; }
+  .rappel-tag { font-size: 1.4rem; color: #0B5FA5; font-style: italic; display: block; margin-top: 14px; }
+  .belt-origin-tag {
+    display: inline-block; font-size: 0.9rem; font-weight: bold; color: white;
+    border-radius: 20px; padding: 3px 14px; margin-left: 14px; vertical-align: middle;
+    text-transform: none;
+  }
+
+  #btn-correction {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: var(--belt-color); color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-correction:hover { filter: brightness(0.92); }
+  #btn-verifier {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: #2E8B57; color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-verifier:hover { filter: brightness(0.92); }
+  #feedback-msg {
+    font-size: 1.4rem; font-weight: bold; min-height: 2.2rem; margin-bottom: 8px;
+  }
+  #feedback-msg.ok { color: #2E8B57; }
+  #feedback-msg.ko { color: #C0392B; }
+  input.digit-input, input.line-input {
+    font-family: inherit; font-weight: bold; text-align: center; border-radius: 6px;
+    border: 2px solid #999;
+  }
+  input.digit-input.correct, input.line-input.correct, input.carry-input.correct, input.cassage-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  input.digit-input.incorrect, input.line-input.incorrect, input.carry-input.incorrect, input.cassage-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+
+  nav.arrows { display: flex; justify-content: space-between; align-items: center; padding: 14px 30px; }
+  nav.arrows button {
+    width: 60px; height: 60px; border-radius: 50%; border: 2px solid #1a1a1a; background: white;
+    font-size: 1.8rem; cursor: pointer;
+  }
+  nav.arrows button:hover { background: #eee; }
+  nav.arrows span { font-size: 1.15rem; color: #555; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10; }
+  #overlay.show { display: flex; }
+  #picker { background: white; border-radius: 12px; padding: 28px 32px; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+  #picker h2 { margin: 0 0 18px 0; font-size: 1.5rem; color: var(--belt-color); font-weight: bold; }
+  #picker-jump { display: flex; gap: 10px; margin-bottom: 20px; }
+  #picker-input { flex: 1; min-width: 260px; padding: 10px 14px; font-size: 1rem; border: 2px solid var(--belt-color); border-radius: 8px; }
+  #picker-go { padding: 10px 22px; font-size: 1rem; font-weight: bold; cursor: pointer; background: var(--belt-color); color: white; border: none; border-radius: 8px; }
+  #picker-go:hover { filter: brightness(0.92); }
+  #picker-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 22px; }
+  #picker-grid button { padding: 10px 0; border: 2px solid var(--belt-color); border-radius: 10px; background: white; color: var(--belt-color); font-weight: bold; font-size: 1rem; cursor: pointer; }
+  #picker-grid button:hover { background: var(--belt-color-pale); }
+  #picker-grid button.current { background: var(--belt-color); color: white; }
+  #picker-close { background: #8a8a8a; color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 1rem; cursor: pointer; }
+  #picker-close:hover { background: #767676; }
+  
+  header { padding: 6px 24px !important; }
+  #btn-correction { padding: 7px 28px !important; }
+  #btn-verifier { padding: 7px 28px !important; }
+  nav.arrows { padding: 6px 30px !important; }
+  #carte-indicator { margin-bottom: 1px !important; padding: 2px 20px !important; }
+  #palier-label { margin-bottom: 1px !important; font-size: 1.1rem !important; }
+  #calc-area { margin-bottom: 2px !important; }
+  main { padding: 2px 20px !important; }
+  #feedback-msg { min-height: 0.9rem !important; margin-bottom: 0px !important; }
+  .step-block input.line-input { border-radius: 6px; border: 2px solid #999; padding: 2px 8px; }
+  .step-block input.line-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  .step-block input.line-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+  .schema-opt.selected { border-color: #555 !important; }
+  .item-label.correct { color: #2E8B57; border-color: #2E8B57 !important; background: #DFF3E1; }
+  .item-label.incorrect { color: #C0392B; border-color: #C0392B !important; background: #FBE0DE; }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;">
+    <a class="home" href="index.html" title="Retour à l'index">🏠</a>
+    <h1>Ceinture BLEUE</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span id="session-score">Séance : 0/0</span>
+    <button id="btn-fin-seance">Terminer la séance</button>
+    <button id="btn-mode" title="Déverrouiller la correction libre">👤 Élève</button>
+    <button id="progress-btn">Carte 1 / 60</button>
+  </div>
+</header>
+<main>
+  <div id="carte-indicator"></div>
+  <div id="palier-label"></div>
+  <div id="calc-area"></div>
+  <div id="feedback-msg"></div>
+  <div style="display:flex; gap:28px; margin-top:8px;">
+    <button id="btn-verifier">Vérifier ma réponse</button>
+    <button id="btn-correction">Voir la correction (espace)</button>
+  </div>
+</main>
+<nav class="arrows">
+  <button id="prev">←</button>
+  <span>Flèches ← → au clavier, ou clique sur le numéro en haut</span>
+  <button id="next">→</button>
+</nav>
+
+<div id="overlay">
+  <div id="picker">
+    <h2>Aller à la carte...</h2>
+    <div id="picker-jump">
+      <input type="number" id="picker-input" min="1" placeholder="N° de carte (1-60)">
+      <button id="picker-go">Aller</button>
+    </div>
+    <div id="picker-grid"></div>
+    <button id="picker-close">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Contenu specifique a la discipline (fourni par l'appelant) :
+// doit definir renderCard(items, showCorrection) -> HTML string, et checkCard(items) -> tableau de booleens
+// ============================================================
+
+const STEP_LABELS = {famille: "Famille", schema: "Schéma", equation: "Calcul", reponse: "Réponse"};
+
+// Mémorise, par carte et par étape, la dernière réponse CORRECTE donnée --
+// pour qu'un retour "Voir la correction" -> "Retour à l'énoncé" ne réinitialise
+// que les étapes encore fausses, pas celles déjà réussies.
+let stepState = {};
+function stepKey(prefix){ return `${cardIdx}-${prefix}`; }
+
+function normEq(s){
+  return s.trim().toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[×x]/g, "x")
+    .replace(/[−-]/g, "-")
+    .replace(/[÷]/g, "/");
+}
+function eqMatches(given, expected){
+  const g = normEq(given), e = normEq(expected);
+  if(g === e) return true;
+  // Commutativité : a+b+...=r (addition) ou a x b x ...=r (multiplication)
+  // acceptée dans n'importe quel ordre des termes -- jamais pour -, / ou un
+  // mélange d'opérateurs, où l'ordre reste significatif.
+  const parseCommutative = (s, opChar) => {
+    const escaped = opChar === "x" ? "x" : "\\" + opChar;
+    const re = new RegExp(`^([\\d${escaped}]+)=(\\d+)$`);
+    const m = s.match(re);
+    if(!m) return null;
+    const terms = m[1].split(opChar).filter(t => t.length);
+    if(terms.length < 2) return null;
+    return { terms: terms.sort(), result: m[2] };
+  };
+  for(const op of ["+", "x"]){
+    const pg = parseCommutative(g, op), pe = parseCommutative(e, op);
+    if(pg && pe && pg.result === pe.result && pg.terms.length === pe.terms.length
+       && pg.terms.every((t, i) => t === pe.terms[i])){
+      return true;
+    }
+  }
+  return false;
+}
+function normText(s){
+  return s.trim().toLowerCase()
+    .replace(/\s+/g, " ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function schemaSvg(opt){
+  if(opt.kind === "partiestout"){
+    // "parts" est une liste (2 ou 3 elements) -- generalisation des cartes a
+    // 3 termes (ex. Blanche cartes 16-20 : 3 parties additionnees).
+    const parts = opt.parts || [opt.p1, opt.p2]; // p1/p2 : retrocompatibilite
+    const n = parts.length;
+    const gap = 6, totalW = 168, boxW = (totalW - gap * (n - 1)) / n;
+    let partsSvg = "";
+    parts.forEach((val, i) => {
+      const x = 6 + i * (boxW + gap);
+      partsSvg += `<rect x="${x}" y="40" width="${boxW}" height="20" rx="4" fill="#E1EFFB" stroke="#85B7EB"/>
+        <text x="${x + boxW/2}" y="50" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${val}</text>`;
+    });
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="6" y="6" width="168" height="20" rx="4" fill="#E1EFFB" stroke="#85B7EB"/>
+      <text x="90" y="16" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.tout}</text>
+      ${partsSvg}
+    </svg>`;
+  }
+  if(opt.kind === "transformation"){
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="4" y="22" width="50" height="24" rx="4" fill="#FAE7DE" stroke="#F0997B"/>
+      <text x="29" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.avant}</text>
+      <text x="29" y="58" text-anchor="middle" font-size="9" fill="#8a5a45">avant</text>
+      <line x1="58" y1="34" x2="118" y2="34" stroke="#8a5a45" stroke-width="1.5" marker-end="url(#arrp)"/>
+      <text x="88" y="24" text-anchor="middle" font-size="9" fill="#8a5a45">${opt.delta}</text>
+      <rect x="124" y="22" width="50" height="24" rx="4" fill="#FAE7DE" stroke="#F0997B"/>
+      <text x="149" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.apres}</text>
+      <text x="149" y="58" text-anchor="middle" font-size="9" fill="#8a5a45">après</text>
+      <defs><marker id="arrp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a5a45" stroke-width="1.5"/></marker></defs>
+    </svg>`;
+  }
+  if(opt.kind === "comparaison"){
+    // Modele en barres : "grand" pleine largeur, "petit" plus courte alignee
+    // a gauche, l'ecart materialise par une accolade sur la portion restante.
+    return `<svg viewBox="0 0 180 78" width="100%" height="64">
+      <text x="6" y="10" font-size="9" fill="#6b4d99">grand</text>
+      <rect x="6" y="14" width="168" height="20" rx="4" fill="#EDE3F7" stroke="#B295D9"/>
+      <text x="90" y="24" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.grand}</text>
+      <text x="6" y="46" font-size="9" fill="#6b4d99">petit</text>
+      <rect x="6" y="50" width="100" height="20" rx="4" fill="#EDE3F7" stroke="#B295D9"/>
+      <text x="56" y="60" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.petit}</text>
+      <line x1="106" y1="50" x2="106" y2="14" stroke="#6b4d99" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="140" y="70" text-anchor="middle" font-size="9" fill="#6b4d99">écart : ${opt.ecart}</text>
+      <line x1="106" y1="76" x2="174" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+      <line x1="106" y1="72" x2="106" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+      <line x1="174" y1="72" x2="174" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+    </svg>`;
+  }
+  if(opt.kind === "multiplicatif"){
+    // "nb de parts x valeur d'une part = produit", meme registre visuel que
+    // Transformation (3 cases en ligne) mais avec un operateur x.
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="2" y="22" width="48" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="26" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.nb_parts}</text>
+      <text x="26" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">nb de parts</text>
+      <text x="56" y="38" text-anchor="middle" font-size="14" fill="#5c7a3f">×</text>
+      <rect x="62" y="22" width="48" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="86" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.valeur_part}</text>
+      <text x="86" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">valeur d'1 part</text>
+      <text x="116" y="38" text-anchor="middle" font-size="14" fill="#5c7a3f">=</text>
+      <rect x="122" y="22" width="52" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="148" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.produit}</text>
+      <text x="148" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">produit</text>
+    </svg>`;
+  }
+  return "";
+}
+
+// --- Visuels "lecture de donnees" (Noire) : graphique en barres, tableau a
+// double entree, horloge decorative pour les problemes de duree. Ce sont des
+// visuels d'ENONCE (jamais notes en tant que tels) -- la notation porte sur
+// les 3 items "reponse" independants qui suivent, chacun avec son propre
+// `question` affiche au-dessus de son champ de saisie (cf. renderOneItem
+// "reponse" plus bas).
+const GRAPH_COLORS = ['#8577B7', '#DFAF4C', '#7BA65C', '#6FA8D6', '#C97B95'];
+
+function graphiqueSvg(visual){
+  const labels = visual.labels, values = visual.values;
+  const axisMax = Math.max(...values, 1); // echelle graduee de 1 en 1 jusqu'a la valeur max
+  // Graphique agrandi (davantage de place qu'auparavant) : barres plus
+  // hautes/larges et polices plus grandes pour rester lisible une fois
+  // affiché en grand dans la carte.
+  const chartH = 280, chartW = 560, barGap = 18, marginLeft = 54;
+  const barW = (chartW - barGap * (labels.length - 1)) / labels.length;
+  let ticksSvg = "";
+  for(let v = 0; v <= axisMax; v++){
+    const y = chartH - (v / axisMax) * chartH;
+    ticksSvg += `<line x1="${marginLeft}" y1="${y+14}" x2="${marginLeft+chartW}" y2="${y+14}" stroke="#e2e2e2" stroke-width="1"/>
+      <text x="${marginLeft-6}" y="${y+18}" text-anchor="end" font-size="15" fill="#888">${v}</text>`;
+  }
+  let barsSvg = "";
+  // Volontairement PAS de valeur affichée au-dessus de chaque barre : l'élève
+  // doit lire la hauteur sur l'échelle graduée, pas recopier un chiffre déjà
+  // donné (demande explicite de l'enseignante).
+  labels.forEach((lab, i) => {
+    const v = values[i];
+    const h = (v / axisMax) * chartH;
+    const x = marginLeft + i * (barW + barGap);
+    const y = 14 + (chartH - h);
+    barsSvg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${GRAPH_COLORS[i % GRAPH_COLORS.length]}" rx="3"/>
+      <text x="${x + barW/2}" y="${chartH + 40}" text-anchor="middle" font-size="15" fill="#444">${lab}</text>`;
+  });
+  const vbW = marginLeft + chartW + 10, vbH = chartH + 56;
+  return `<div style="text-align:center;">
+    ${visual.title ? `<div style="font-weight:bold;font-size:1.3rem;margin-bottom:6px;">${visual.title}</div>` : ''}
+    <svg viewBox="0 0 ${vbW} ${vbH}" width="100%" height="${vbH}" style="max-width:720px;">
+      ${ticksSvg}
+      <line x1="${marginLeft}" y1="${chartH+14}" x2="${marginLeft+chartW}" y2="${chartH+14}" stroke="#888" stroke-width="1.5"/>
+      ${barsSvg}
+    </svg>
+  </div>`;
+}
+
+function tableauHtml(visual){
+  const head = `<th style="border:1px solid #ccc;background:#2F3B52;color:white;padding:8px 18px;"></th>` +
+    visual.colLabels.map(c => `<th style="border:1px solid #ccc;background:#2F3B52;color:white;padding:8px 18px;">${c}</th>`).join("");
+  const rows = visual.rowLabels.map((r, i) => {
+    const cells = visual.data[i].map(v => `<td style="border:1px solid #ccc;padding:8px 18px;text-align:center;">${v}</td>`).join("");
+    return `<tr><th style="border:1px solid #ccc;background:#EAEAF0;padding:8px 18px;">${r}</th>${cells}</tr>`;
+  }).join("");
+  return `<div style="text-align:center;">
+    ${visual.title ? `<div style="font-weight:bold;font-size:1.3rem;margin-bottom:8px;">${visual.title}</div>` : ''}
+    <table style="border-collapse:collapse;margin:0 auto;font-size:1.15rem;">
+      <tr>${head}</tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+
+function dureeSvg(){
+  // Horloge decorative (pas d'heure precise a lire) -- rappelle visuellement
+  // qu'il s'agit de problemes de duree, comme sur la fiche papier d'origine.
+  return `<div style="text-align:center;">
+    <svg viewBox="0 0 80 80" width="70" height="70">
+      <circle cx="40" cy="40" r="34" fill="white" stroke="#555" stroke-width="2.5"/>
+      <line x1="40" y1="40" x2="40" y2="18" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="40" y1="40" x2="58" y2="40" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="40" r="2.5" fill="#555"/>
+    </svg>
+  </div>`;
+}
+
+function renderOneItem(item, showCorrection, prefix){
+  if(item.type === "enonce"){
+    let visualHtml = "";
+    if(item.visual){
+      if(item.visual.kind === "graphique") visualHtml = graphiqueSvg(item.visual);
+      else if(item.visual.kind === "tableau") visualHtml = tableauHtml(item.visual);
+      else if(item.visual.kind === "duree") visualHtml = dureeSvg();
+    }
+    // `hints` (Dorée) : conseils de méthode affichés en aide, jamais notés --
+    // équivalent de l'encadré "Conseils" de la fiche papier. `showEssais` :
+    // ajoute une zone de brouillon libre ("Mes essais") sous l'énoncé, pour
+    // que l'élève puisse tâtonner comme sur la carte papier -- non notée,
+    // non sauvegardée, purement un espace de travail.
+    const hintsHtml = item.hints ? `
+      <div style="margin-top:6px;padding:6px 10px;background:#FBF3DC;border:1px solid #E3C878;border-radius:6px;">
+        <div style="font-weight:bold;font-size:0.8rem;color:#8a6d1a;margin-bottom:2px;">Conseils :</div>
+        <ul style="margin:0;padding-left:18px;font-size:0.85rem;color:#6b551a;">
+          ${item.hints.map(h => `<li>${h}</li>`).join("")}
+        </ul>
+      </div>` : '';
+    const essaisHtml = item.showEssais ? `
+      <div style="margin-top:6px;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">Mes essais :</div>
+        <textarea rows="3" style="width:100%;max-width:600px;font-family:inherit;font-size:0.9rem;border:2px solid #ccc;border-radius:6px;padding:4px 8px;" placeholder="Note ici tes essais et ajustements..."></textarea>
+      </div>` : '';
+    // `imageData` : image reelle (jpg du dossier du projet, encodee en base64
+    // au moment de la generation -- voir build_doree_data.py) -- prioritaire
+    // sur `imagePlaceholder`, qui reste le repli tant qu'aucun fichier jpg
+    // n'existe pour la carte (meme espace reserve, meme dimensions, pour que
+    // la mise en page ne bouge pas quand l'image est ajoutee).
+    const imageHtml = item.imageData ? `
+      <div style="margin-top:6px;width:100%;max-width:720px;height:336px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;">
+        <img src="${item.imageData}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;">
+      </div>` : (item.imagePlaceholder ? `
+      <div style="margin-top:6px;width:100%;max-width:720px;height:336px;border:2px dashed #b8b8b0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.85rem;background:#fff;">
+        Espace pour une image
+      </div>` : '');
+    return `<div style="max-width:1000px;margin:0 auto 1px;padding:3px 12px;background:#F4F4F2;border-radius:8px;text-align:left;font-size:0.95rem;line-height:1.2;">
+      ${item.title ? `<div style="font-weight:bold;font-size:1.1rem;margin-bottom:2px;">${item.title}</div>` : ''}
+      ${visualHtml}
+      ${imageHtml}
+      ${item.enonce ? `<div style="${item.visual ? 'margin-top:4px;' : ''}">${item.enonce}</div>` : ''}
+      ${item.question ? `<div style="font-weight:bold;margin-top:1px;">${item.question}</div>` : ''}
+      ${hintsHtml}
+      ${essaisHtml}
+    </div>`;
+  }
+
+  if(item.type === "famille"){
+    if(showCorrection){
+      const boxes = item.options.map((opt, i) => {
+        const isCorrect = i === item.correct;
+        return `<div style="flex:1;padding:2px 4px;border:2px solid ${isCorrect ? '#2E8B57' : '#ddd'};border-radius:8px;background:${isCorrect ? '#DFF3E1' : 'white'};text-align:center;">
+          <div style="font-size:0.8rem;font-weight:bold;">${opt[0]}</div>
+          ${opt[1] ? `<div style="font-size:0.7rem;color:#555;">${opt[1]}</div>` : ''}
+        </div>`;
+      }).join("");
+      return `<div style="display:flex;gap:5px;max-width:900px;margin:0 auto;">${boxes}</div>`;
+    }
+    const saved = stepState[stepKey(prefix)];
+    const opts = item.options.map((opt, i) => {
+      const isSaved = saved && parseInt(saved.value) === i;
+      const border = isSaved ? '#2E8B57' : '#ccc';
+      const bg = isSaved ? '#DFF3E1' : 'white';
+      return `
+      <label class="famille-opt" style="flex:1;display:block;text-align:center;padding:2px 4px;border:2px solid ${border};border-radius:8px;cursor:pointer;background:${bg};">
+        <input type="radio" name="famille-${prefix}" id="famille-${prefix}-${i}" value="${i}" ${isSaved ? 'checked' : ''} style="display:block;margin:0 auto 4px;">
+        <div style="font-size:0.8rem;font-weight:bold;">${opt[0]}</div>
+        ${opt[1] ? `<div style="font-size:0.7rem;color:#555;">${opt[1]}</div>` : ''}
+      </label>`;
+    }).join("");
+    return `<div style="display:flex;gap:5px;max-width:900px;margin:0 auto;">${opts}</div>`;
+  }
+
+  if(item.type === "schema"){
+    if(showCorrection){
+      const boxes = item.options.map((opt, i) => {
+        const isCorrect = i === item.correct;
+        return `<div style="padding:3px;border:2px solid ${isCorrect ? '#2E8B57' : '#ddd'};border-radius:8px;background:${isCorrect ? '#DFF3E1' : 'white'};">
+          <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">${String.fromCharCode(65+i)}</div>
+          ${schemaSvg(opt)}
+        </div>`;
+      }).join("");
+      return `<div style="display:flex;gap:5px;max-width:1000px;margin:0 auto;">${boxes}</div>`;
+    }
+    const savedSchema = stepState[stepKey(prefix)];
+    const cards = item.options.map((opt, i) => {
+      const isSaved = savedSchema && parseInt(savedSchema.value) === i;
+      return `
+      <button type="button" class="schema-opt${isSaved ? ' selected' : ''}" id="schema-${prefix}-${i}" data-idx="${i}"
+        style="flex:1;text-align:center;padding:3px;border:2px solid ${isSaved ? '#2E8B57' : '#ccc'};border-radius:8px;background:${isSaved ? '#DFF3E1' : 'white'};cursor:pointer;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">${String.fromCharCode(65+i)}</div>
+        ${schemaSvg(opt)}
+      </button>`;
+    }).join("");
+    return `<div style="display:flex;gap:5px;max-width:1000px;margin:0 auto;">${cards}</div>`;
+  }
+
+  if(item.type === "equation"){
+    if(showCorrection){
+      return `<div style="font-size:1.25rem;font-weight:bold;color:#2E8B57;">${item.expected}</div>`;
+    }
+    const savedEq = stepState[stepKey(prefix)];
+    return `<div style="font-size:1.2rem;">
+      <input type="text" id="equation-${prefix}" class="line-input${savedEq ? ' correct' : ''}" placeholder="ex : 3 + 4 = 7" value="${savedEq ? savedEq.value : ''}" style="font-size:1.2rem;width:220px;text-align:center;">
+    </div>`;
+  }
+
+  if(item.type === "reponse"){
+    // `question` : optionnel -- une question autonome affichee au-dessus du
+    // champ (utilise sur Noire, ou une carte "lecture de donnees" porte 3
+    // items reponse independants, chacun avec sa propre question, plutot que
+    // la question unique partagee de l'item "enonce").
+    const questionHtml = item.question ? `<div style="margin-bottom:2px;">${item.question}</div>` : '';
+    if(showCorrection){
+      return `<div style="font-size:1.1rem;">
+        ${questionHtml}
+        ${item.fixedPrefix} <span style="font-weight:bold;color:#2E8B57;">${item.expectedBlank}</span>${item.fixedSuffix}
+      </div>`;
+    }
+    const savedRep = stepState[stepKey(prefix)];
+    return `<div style="font-size:1.1rem;">
+      ${questionHtml}
+      ${item.fixedPrefix}
+      <input type="text" id="reponse-${prefix}" class="line-input${savedRep ? ' correct' : ''}" value="${savedRep ? savedRep.value : ''}" style="font-size:1.1rem;width:190px;text-align:center;">
+      ${item.fixedSuffix}
+    </div>`;
+  }
+  return "";
+}
+
+function renderCard(items, showCorrection){
+  let stepIdx = -1;
+  const parts = items.map((item) => {
+    if(item.type === "enonce"){
+      return renderOneItem(item, showCorrection, -1);
+    }
+    stepIdx++;
+    const i = stepIdx;
+    // item.label : override explicite (utilise pour les cartes a 2 equations,
+    // ex. Jaune carte 20 -- "Calcul (etape 1)" / "Calcul (etape 2)").
+    const label = item.label || STEP_LABELS[item.type] || `Étape ${i+1}`;
+    return `<div class="step-block" style="margin-bottom:2px;">
+      <div class="item-label" id="item-label-${i}" style="display:inline-block;font-size:0.85rem;font-weight:bold;color:#999;border:2px solid #ccc;border-radius:14px;padding:0px 12px;margin-bottom:0px;">${label}</div>
+      <div>${renderOneItem(item, showCorrection, i)}</div>
+    </div>`;
+  });
+  return '<div style="text-align:center;">' + parts.join('') + '</div>';
+}
+
+function checkOneItem(item, prefix){
+  if(item.type === "enonce") return true; // jamais noté, ne bloque pas "tout juste"
+
+  if(item.type === "famille"){
+    const chosen = document.querySelector(`input[name="famille-${prefix}"]:checked`);
+    document.querySelectorAll(`.famille-opt`).forEach(el => { el.style.borderColor = '#ccc'; el.style.background = 'white'; });
+    if(!chosen){ delete stepState[stepKey(prefix)]; return false; }
+    const label = chosen.closest('label');
+    const ok = parseInt(chosen.value) === item.correct;
+    label.style.borderColor = ok ? '#2E8B57' : '#C0392B';
+    label.style.background = ok ? '#DFF3E1' : '#FBE0DE';
+    if(ok) stepState[stepKey(prefix)] = { value: chosen.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "schema"){
+    const btns = document.querySelectorAll(`[id^="schema-${prefix}-"]`);
+    let chosenIdx = null;
+    btns.forEach(b => { if(b.classList.contains('selected')) chosenIdx = parseInt(b.dataset.idx); });
+    btns.forEach(b => { b.style.borderColor = '#ccc'; b.style.background = 'white'; });
+    if(chosenIdx === null){ delete stepState[stepKey(prefix)]; return false; }
+    const ok = chosenIdx === item.correct;
+    const chosenBtn = document.getElementById(`schema-${prefix}-${chosenIdx}`);
+    chosenBtn.style.borderColor = ok ? '#2E8B57' : '#C0392B';
+    chosenBtn.style.background = ok ? '#DFF3E1' : '#FBE0DE';
+    if(ok) stepState[stepKey(prefix)] = { value: String(chosenIdx) }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "equation"){
+    const input = document.getElementById(`equation-${prefix}`);
+    if(!input) return false;
+    const ok = eqMatches(input.value, item.expected);
+    input.classList.remove('correct','incorrect');
+    input.classList.add(ok ? 'correct' : 'incorrect');
+    if(ok) stepState[stepKey(prefix)] = { value: input.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "reponse"){
+    const input = document.getElementById(`reponse-${prefix}`);
+    if(!input) return false;
+    // Le champ n'attend normalement que le blanc (ex. "8 gateaux"), mais un
+    // eleve qui recopie la phrase entiere du corrige (prefixe + blanc +
+    // suffixe, ex. "La difference est 8 gateaux.") tape une reponse tout
+    // aussi juste -- on accepte les deux formes plutot que de la rejeter.
+    const fullSentence = `${item.fixedPrefix} ${item.expectedBlank}${item.fixedSuffix}`;
+    const typed = normText(input.value);
+    const ok = typed === normText(item.expectedBlank) || typed === normText(fullSentence);
+    input.classList.remove('correct','incorrect');
+    input.classList.add(ok ? 'correct' : 'incorrect');
+    if(ok) stepState[stepKey(prefix)] = { value: input.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  return false;
+}
+
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.schema-opt');
+  if(!btn) return;
+  const prefix = btn.id.split('-')[1];
+  document.querySelectorAll(`[id^="schema-${prefix}-"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  btn.style.borderColor = '#555';
+});
+
+// Empêche les raccourcis clavier globaux du moteur (espace = correction,
+// flèches = changer de carte) de capturer les touches quand on tape dans un
+// champ de saisie -- sans toucher au moteur générique lui-même : on
+// intercepte en phase de capture, AVANT que son écouteur (phase de bulles)
+// ne reçoive l'événement.
+document.addEventListener('keydown', function(e){
+  const tag = e.target.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA'){
+    if(e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+      e.stopPropagation();
+    }
+  }
+}, true); // true = phase de capture
+
+function checkCard(items){
+  const results = [];
+  let stepIdx = -1;
+  items.forEach((item) => {
+    if(item.type === "enonce") return; // pas d'étape notée, pas d'entrée dans results
+    stepIdx++;
+    results.push(checkOneItem(item, stepIdx));
+  });
+  return results;
+}
+
+
+// ============================================================
+// Moteur generique (ceci ne change pas d'une discipline a l'autre)
+// ============================================================
+const CARDS = [{"recto": "Carte 1/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Louise a 14 bonbons. Florent en a 6.", "question": "Combien de bonbons Louise a-t-elle de plus que Florent ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "comparaison", "grand": "?", "petit": "6", "ecart": "8"}, {"kind": "comparaison", "grand": "14", "petit": "6", "ecart": "?"}, {"kind": "transformation", "avant": "6", "delta": "+8", "apres": "?"}, {"kind": "partiestout", "tout": "14", "parts": ["?", "8"]}]}, {"type": "equation", "expected": "14 - 6 = 8"}, {"type": "reponse", "fixedPrefix": "Louise a", "fixedSuffix": ".", "expectedBlank": "8 bonbons de plus que Florent"}]}, {"recto": "Carte 2/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Yasmine a lu 20 pages. Rayan en a lu 13.", "question": "Quelle est la différence entre le nombre de pages lues par chacun ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 2}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "13", "delta": "+7", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "13", "ecart": "7"}, {"kind": "partiestout", "tout": "20", "parts": ["?", "7"]}, {"kind": "comparaison", "grand": "20", "petit": "13", "ecart": "?"}]}, {"type": "equation", "expected": "20 - 13 = 7"}, {"type": "reponse", "fixedPrefix": "La différence est", "fixedSuffix": ".", "expectedBlank": "7 pages"}]}, {"recto": "Carte 3/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Une boîte contient 25 petits gâteaux. Une autre en contient 17.", "question": "Quelle est la différence entre le nombre de gâteaux des deux boîtes ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "25", "petit": "17", "ecart": "?"}, {"kind": "comparaison", "grand": "?", "petit": "17", "ecart": "8"}, {"kind": "partiestout", "tout": "25", "parts": ["?", "8"]}, {"kind": "transformation", "avant": "17", "delta": "+8", "apres": "?"}]}, {"type": "equation", "expected": "25 - 17 = 8"}, {"type": "reponse", "fixedPrefix": "La différence est", "fixedSuffix": ".", "expectedBlank": "8 gâteaux"}]}, {"recto": "Carte 4/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Léo a mis 32 minutes pour finir son puzzle. Sa sœur l'a fini en 19 minutes.", "question": "Quelle est la différence de temps entre les deux ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "comparaison", "grand": "?", "petit": "19", "ecart": "13"}, {"kind": "comparaison", "grand": "32", "petit": "19", "ecart": "?"}, {"kind": "partiestout", "tout": "32", "parts": ["?", "13"]}, {"kind": "transformation", "avant": "19", "delta": "+13", "apres": "?"}]}, {"type": "equation", "expected": "32 - 19 = 13"}, {"type": "reponse", "fixedPrefix": "La différence est", "fixedSuffix": ".", "expectedBlank": "13 minutes"}]}, {"recto": "Carte 5/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Un pantalon vaut 29 € dans un magasin. Il vaut 35 € dans un autre magasin.", "question": "De combien est-il plus cher dans le 2e magasin ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "29", "delta": "+6", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "29", "ecart": "6"}, {"kind": "partiestout", "tout": "35", "parts": ["?", "6"]}, {"kind": "comparaison", "grand": "35", "petit": "29", "ecart": "?"}]}, {"type": "equation", "expected": "35 - 29 = 6"}, {"type": "reponse", "fixedPrefix": "Il est", "fixedSuffix": ".", "expectedBlank": "6 € plus cher dans le 2e magasin"}]}, {"recto": "Carte 6/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Fatou a 36 cubes dans sa boîte. Rémi a 24 cubes dans sa boîte.", "question": "Combien de cubes Fatou a-t-elle de plus que Rémi ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "comparaison", "grand": "?", "petit": "24", "ecart": "12"}, {"kind": "partiestout", "tout": "36", "parts": ["?", "12"]}, {"kind": "transformation", "avant": "24", "delta": "+12", "apres": "?"}, {"kind": "comparaison", "grand": "36", "petit": "24", "ecart": "?"}]}, {"type": "equation", "expected": "36 - 24 = 12"}, {"type": "reponse", "fixedPrefix": "Fatou a", "fixedSuffix": ".", "expectedBlank": "12 cubes de plus que Rémi"}]}, {"recto": "Carte 7/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Max a 37 cartes de collection. Lou en a 42.", "question": "Combien de cartes Lou a-t-elle de plus par rapport à Max ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "42", "parts": ["?", "5"]}, {"kind": "comparaison", "grand": "42", "petit": "37", "ecart": "?"}, {"kind": "comparaison", "grand": "?", "petit": "37", "ecart": "5"}, {"kind": "transformation", "avant": "37", "delta": "+5", "apres": "?"}]}, {"type": "equation", "expected": "42 - 37 = 5"}, {"type": "reponse", "fixedPrefix": "Lou a", "fixedSuffix": ".", "expectedBlank": "5 cartes de plus que Max"}]}, {"recto": "Carte 8/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Une canette contient 33 cl. Une bouteille contient 75 cl.", "question": "Quelle est la différence de contenance entre les deux ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "75", "parts": ["?", "42"]}, {"kind": "comparaison", "grand": "?", "petit": "33", "ecart": "42"}, {"kind": "comparaison", "grand": "75", "petit": "33", "ecart": "?"}, {"kind": "transformation", "avant": "33", "delta": "+42", "apres": "?"}]}, {"type": "equation", "expected": "75 - 33 = 42"}, {"type": "reponse", "fixedPrefix": "La différence est", "fixedSuffix": ".", "expectedBlank": "42 cl"}]}, {"recto": "Carte 9/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Lisa a lancé le poids à 98 cm. Antoine l'a lancé à 73 cm.", "question": "Quel est l'écart de distance entre les deux lancers ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "98", "petit": "73", "ecart": "?"}, {"kind": "partiestout", "tout": "98", "parts": ["?", "25"]}, {"kind": "transformation", "avant": "73", "delta": "+25", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "73", "ecart": "25"}]}, {"type": "equation", "expected": "98 - 73 = 25"}, {"type": "reponse", "fixedPrefix": "L'écart entre les deux lancers est", "fixedSuffix": ".", "expectedBlank": "25 cm"}]}, {"recto": "Carte 10/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Romane a 179 cartes postales. Evan en a 268.", "question": "Combien de cartes Evan a-t-il de plus que Romane ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "comparaison", "grand": "?", "petit": "179", "ecart": "89"}, {"kind": "transformation", "avant": "179", "delta": "+89", "apres": "?"}, {"kind": "comparaison", "grand": "268", "petit": "179", "ecart": "?"}, {"kind": "partiestout", "tout": "268", "parts": ["?", "89"]}]}, {"type": "equation", "expected": "268 - 179 = 89"}, {"type": "reponse", "fixedPrefix": "Evan a", "fixedSuffix": ".", "expectedBlank": "89 cartes de plus que Romane"}]}, {"recto": "Carte 11/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Un ananas pèse 900 g. Une mangue pèse 400 g.", "question": "Quelle est la différence de masse entre les deux fruits ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "900", "parts": ["?", "500"]}, {"kind": "comparaison", "grand": "900", "petit": "400", "ecart": "?"}, {"kind": "transformation", "avant": "400", "delta": "+500", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "400", "ecart": "500"}]}, {"type": "equation", "expected": "900 - 400 = 500"}, {"type": "reponse", "fixedPrefix": "La différence est", "fixedSuffix": ".", "expectedBlank": "500 g"}]}, {"recto": "Carte 12/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Bill a 20 perles. Jules en a 29.", "question": "Jules a combien de perles de plus que Bill ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "comparaison", "grand": "?", "petit": "20", "ecart": "9"}, {"kind": "comparaison", "grand": "29", "petit": "20", "ecart": "?"}, {"kind": "partiestout", "tout": "29", "parts": ["?", "9"]}, {"kind": "transformation", "avant": "20", "delta": "+9", "apres": "?"}]}, {"type": "equation", "expected": "29 - 20 = 9"}, {"type": "reponse", "fixedPrefix": "Jules a", "fixedSuffix": ".", "expectedBlank": "9 perles de plus que Bill"}]}, {"recto": "Carte 13/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Le fermier a 20 salades. La fermière en a 13.", "question": "Le fermier a combien de salades de plus ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "20", "petit": "13", "ecart": "?"}, {"kind": "transformation", "avant": "13", "delta": "+7", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "13", "ecart": "7"}, {"kind": "partiestout", "tout": "20", "parts": ["?", "7"]}]}, {"type": "equation", "expected": "20 - 13 = 7"}, {"type": "reponse", "fixedPrefix": "Le fermier a", "fixedSuffix": ".", "expectedBlank": "7 salades de plus"}]}, {"recto": "Carte 14/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Sophia a ramassé 14 champignons. Robin en a ramassé 10.", "question": "Sophia a combien de champignons de plus que Robin ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "14", "petit": "10", "ecart": "?"}, {"kind": "comparaison", "grand": "?", "petit": "10", "ecart": "4"}, {"kind": "transformation", "avant": "10", "delta": "+4", "apres": "?"}, {"kind": "partiestout", "tout": "14", "parts": ["?", "4"]}]}, {"type": "equation", "expected": "14 - 10 = 4"}, {"type": "reponse", "fixedPrefix": "Sophia a", "fixedSuffix": ".", "expectedBlank": "4 champignons de plus que Robin"}]}, {"recto": "Carte 15/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "L'équipe rouge a 48 points. L'équipe bleue en a 35.", "question": "Quelle est la différence de points ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "35", "delta": "+13", "apres": "?"}, {"kind": "partiestout", "tout": "48", "parts": ["?", "13"]}, {"kind": "comparaison", "grand": "?", "petit": "35", "ecart": "13"}, {"kind": "comparaison", "grand": "48", "petit": "35", "ecart": "?"}]}, {"type": "equation", "expected": "48 - 35 = 13"}, {"type": "reponse", "fixedPrefix": "La différence est de", "fixedSuffix": ".", "expectedBlank": "13 points"}]}, {"recto": "Carte 16/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans un arbre il y a 15 oiseaux. Dans l'autre il y en a 9.", "question": "Quelle est la différence entre le nombre d'oiseaux des deux arbres ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "15", "petit": "9", "ecart": "?"}, {"kind": "partiestout", "tout": "15", "parts": ["?", "6"]}, {"kind": "comparaison", "grand": "?", "petit": "9", "ecart": "6"}, {"kind": "transformation", "avant": "9", "delta": "+6", "apres": "?"}]}, {"type": "equation", "expected": "15 - 9 = 6"}, {"type": "reponse", "fixedPrefix": "La différence est", "fixedSuffix": ".", "expectedBlank": "6 oiseaux"}]}, {"recto": "Carte 17/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans une école il y a 111 garçons et 257 filles.", "question": "Combien y a-t-il de filles de plus que de garçons ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "111", "delta": "+146", "apres": "?"}, {"kind": "partiestout", "tout": "257", "parts": ["?", "146"]}, {"kind": "comparaison", "grand": "257", "petit": "111", "ecart": "?"}, {"kind": "comparaison", "grand": "?", "petit": "111", "ecart": "146"}]}, {"type": "equation", "expected": "257 - 111 = 146"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "146 filles de plus"}]}, {"recto": "Carte 18/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Un livre coûte 14 euros. J'ai un billet de 10 € et une pièce de 2 €.", "question": "Ai-je assez d'argent ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "comparaison", "grand": "?", "petit": "12", "ecart": "2"}, {"kind": "comparaison", "grand": "14", "petit": "12", "ecart": "?"}, {"kind": "partiestout", "tout": "14", "parts": ["?", "2"]}, {"kind": "transformation", "avant": "12", "delta": "+2", "apres": "?"}]}, {"type": "equation", "expected": "10 + 2 = 12", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "14 - 12 = 2", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Non, il me manque", "fixedSuffix": ".", "expectedBlank": "2 euros"}]}, {"recto": "Carte 19/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Alexis veut acheter des tournesols (15 €) et des lys (32 €). Il a un billet de 50 €.", "question": "A-t-il assez ? Combien lui reste-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "50", "petit": "47", "ecart": "?"}, {"kind": "comparaison", "grand": "?", "petit": "47", "ecart": "3"}, {"kind": "transformation", "avant": "47", "delta": "+3", "apres": "?"}, {"kind": "partiestout", "tout": "50", "parts": ["?", "3"]}]}, {"type": "equation", "expected": "15 + 32 = 47", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "50 - 47 = 3", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Oui. Il lui reste", "fixedSuffix": ".", "expectedBlank": "3 euros"}]}, {"recto": "Carte 20/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Nino a 7 points à un jeu. Son ami en a 9 de plus.", "question": "Combien de points a l'ami de Nino ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "comparaison", "grand": "16", "petit": "?", "ecart": "9"}, {"kind": "transformation", "avant": "7", "delta": "+9", "apres": "?"}, {"kind": "partiestout", "tout": "16", "parts": ["?", "9"]}, {"kind": "comparaison", "grand": "?", "petit": "7", "ecart": "9"}]}, {"type": "equation", "expected": "7 + 9 = 16"}, {"type": "reponse", "fixedPrefix": "L'ami de Nino a", "fixedSuffix": ".", "expectedBlank": "16 points"}]}, {"recto": "Carte 21/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Le caniche d'Alice pèse 12 kg. Le labrador de Rémi pèse 12 kg de plus.", "question": "Combien de kilos le labrador pèse-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "comparaison", "grand": "24", "petit": "?", "ecart": "12"}, {"kind": "partiestout", "tout": "24", "parts": ["?", "12"]}, {"kind": "transformation", "avant": "12", "delta": "+12", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "12", "ecart": "12"}]}, {"type": "equation", "expected": "12 + 12 = 24"}, {"type": "reponse", "fixedPrefix": "Le labrador pèse", "fixedSuffix": ".", "expectedBlank": "24 kg"}]}, {"recto": "Carte 22/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "La récréation du matin dure 15 minutes. Celle de l'après-midi dure 10 minutes de plus.", "question": "Combien de temps dure la récréation de l'après-midi ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "25", "parts": ["?", "10"]}, {"kind": "comparaison", "grand": "25", "petit": "?", "ecart": "10"}, {"kind": "comparaison", "grand": "?", "petit": "15", "ecart": "10"}, {"kind": "transformation", "avant": "15", "delta": "+10", "apres": "?"}]}, {"type": "equation", "expected": "15 + 10 = 25"}, {"type": "reponse", "fixedPrefix": "La récréation de l'après-midi dure", "fixedSuffix": ".", "expectedBlank": "25 minutes"}]}, {"recto": "Carte 23/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Ali a 12 ans. Son père a 25 ans de plus que lui.", "question": "Quel âge a son père ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "?", "petit": "12", "ecart": "25"}, {"kind": "comparaison", "grand": "37", "petit": "?", "ecart": "25"}, {"kind": "partiestout", "tout": "37", "parts": ["?", "25"]}, {"kind": "transformation", "avant": "12", "delta": "+25", "apres": "?"}]}, {"type": "equation", "expected": "12 + 25 = 37"}, {"type": "reponse", "fixedPrefix": "Le père a", "fixedSuffix": ".", "expectedBlank": "37 ans"}]}, {"recto": "Carte 24/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Les parents ont cueilli 34 champignons. Les enfants ont cueilli 12 champignons de plus que leurs parents.", "question": "Combien de champignons les enfants ont-ils cueillis ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "comparaison", "grand": "46", "petit": "?", "ecart": "12"}, {"kind": "transformation", "avant": "34", "delta": "+12", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "34", "ecart": "12"}, {"kind": "partiestout", "tout": "46", "parts": ["?", "12"]}]}, {"type": "equation", "expected": "34 + 12 = 46"}, {"type": "reponse", "fixedPrefix": "Les enfants ont cueilli", "fixedSuffix": ".", "expectedBlank": "46 champignons"}]}, {"recto": "Carte 25/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Un verre contient 15 cl. Un bol contient 35 cl de plus qu'un verre.", "question": "Combien le bol contient-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "comparaison", "grand": "50", "petit": "?", "ecart": "35"}, {"kind": "transformation", "avant": "15", "delta": "+35", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "15", "ecart": "35"}, {"kind": "partiestout", "tout": "50", "parts": ["?", "35"]}]}, {"type": "equation", "expected": "15 + 35 = 50"}, {"type": "reponse", "fixedPrefix": "Le bol contient", "fixedSuffix": ".", "expectedBlank": "50 cl"}]}, {"recto": "Carte 26/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Kim a 34 images. Il en a 25 de moins que Rémi.", "question": "Combien d'images Rémi a-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "?", "petit": "34", "ecart": "25"}, {"kind": "partiestout", "tout": "59", "parts": ["?", "25"]}, {"kind": "comparaison", "grand": "59", "petit": "?", "ecart": "25"}, {"kind": "transformation", "avant": "34", "delta": "+25", "apres": "?"}]}, {"type": "equation", "expected": "34 + 25 = 59"}, {"type": "reponse", "fixedPrefix": "Rémi a", "fixedSuffix": ".", "expectedBlank": "59 images"}]}, {"recto": "Carte 27/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Lise a 8 billes. Timéo en a 3 de plus que Lise.", "question": "Combien de billes Timéo a-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "comparaison", "grand": "11", "petit": "?", "ecart": "3"}, {"kind": "partiestout", "tout": "11", "parts": ["?", "3"]}, {"kind": "comparaison", "grand": "?", "petit": "8", "ecart": "3"}, {"kind": "transformation", "avant": "8", "delta": "+3", "apres": "?"}]}, {"type": "equation", "expected": "8 + 3 = 11"}, {"type": "reponse", "fixedPrefix": "Timéo a", "fixedSuffix": ".", "expectedBlank": "11 billes"}]}, {"recto": "Carte 28/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Le fermier a 30 poules. Sa voisine a 20 poules de plus que lui.", "question": "Combien de poules la voisine a-t-elle ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "50", "parts": ["?", "20"]}, {"kind": "transformation", "avant": "30", "delta": "+20", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "30", "ecart": "20"}, {"kind": "comparaison", "grand": "50", "petit": "?", "ecart": "20"}]}, {"type": "equation", "expected": "30 + 20 = 50"}, {"type": "reponse", "fixedPrefix": "La voisine a", "fixedSuffix": ".", "expectedBlank": "50 poules"}]}, {"recto": "Carte 29/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Dora a 37 points. Léo a 9 points de plus que Dora.", "question": "Combien de points Léo a-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "?", "petit": "37", "ecart": "9"}, {"kind": "transformation", "avant": "37", "delta": "+9", "apres": "?"}, {"kind": "comparaison", "grand": "46", "petit": "?", "ecart": "9"}, {"kind": "partiestout", "tout": "46", "parts": ["?", "9"]}]}, {"type": "equation", "expected": "37 + 9 = 46"}, {"type": "reponse", "fixedPrefix": "Léo a", "fixedSuffix": ".", "expectedBlank": "46 points"}]}, {"recto": "Carte 30/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Le sapin mesure 6 m de haut. Le chêne mesure 5 m de plus que le sapin.", "question": "Quelle est la taille du chêne ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "6", "delta": "+5", "apres": "?"}, {"kind": "comparaison", "grand": "11", "petit": "?", "ecart": "5"}, {"kind": "comparaison", "grand": "?", "petit": "6", "ecart": "5"}, {"kind": "partiestout", "tout": "11", "parts": ["?", "5"]}]}, {"type": "equation", "expected": "6 + 5 = 11"}, {"type": "reponse", "fixedPrefix": "Le chêne mesure", "fixedSuffix": ".", "expectedBlank": "11 mètres"}]}, {"recto": "Carte 31/60", "verso": "Comparaison — recherche du plus grand", "rappel": false, "items": [{"type": "enonce", "enonce": "Léa a fait une guirlande de 12 citrouilles pour décorer la classe. La guirlande de Tom a 5 citrouilles de plus que celle de Léa.", "question": "Combien y a-t-il de citrouilles dans la guirlande de Tom ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "17", "parts": ["?", "5"]}, {"kind": "transformation", "avant": "12", "delta": "+5", "apres": "?"}, {"kind": "comparaison", "grand": "17", "petit": "?", "ecart": "5"}, {"kind": "comparaison", "grand": "?", "petit": "12", "ecart": "5"}]}, {"type": "equation", "expected": "12 + 5 = 17"}, {"type": "reponse", "fixedPrefix": "La guirlande de Tom est composée de", "fixedSuffix": ".", "expectedBlank": "17 citrouilles"}]}, {"recto": "Carte 32/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Un arrosoir contient 8 litres. Un seau contient 3 litres de moins.", "question": "Combien le seau contient-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "comparaison", "grand": "?", "petit": "5", "ecart": "3"}, {"kind": "comparaison", "grand": "8", "petit": "?", "ecart": "3"}, {"kind": "partiestout", "tout": "8", "parts": ["?", "3"]}, {"kind": "transformation", "avant": "5", "delta": "+3", "apres": "?"}]}, {"type": "equation", "expected": "8 - 3 = 5"}, {"type": "reponse", "fixedPrefix": "Le seau contient", "fixedSuffix": ".", "expectedBlank": "5 litres"}]}, {"recto": "Carte 33/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Un fleuriste a vendu 16 roses. Il a vendu 7 tulipes de moins que de roses.", "question": "Combien de tulipes a-t-il vendues ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "comparaison", "grand": "?", "petit": "9", "ecart": "7"}, {"kind": "comparaison", "grand": "16", "petit": "?", "ecart": "7"}, {"kind": "partiestout", "tout": "16", "parts": ["?", "7"]}, {"kind": "transformation", "avant": "9", "delta": "+7", "apres": "?"}]}, {"type": "equation", "expected": "16 - 7 = 9"}, {"type": "reponse", "fixedPrefix": "Il a vendu", "fixedSuffix": ".", "expectedBlank": "9 tulipes"}]}, {"recto": "Carte 34/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans la classe de CE1, il y a 25 élèves. Il y a 6 élèves de moins dans la classe de CP.", "question": "Combien y a-t-il d'élèves dans la classe de CP ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "25", "petit": "?", "ecart": "6"}, {"kind": "transformation", "avant": "19", "delta": "+6", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "19", "ecart": "6"}, {"kind": "partiestout", "tout": "25", "parts": ["?", "6"]}]}, {"type": "equation", "expected": "25 - 6 = 19"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "19 élèves en CP"}]}, {"recto": "Carte 35/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Alice a 25 billes. Elle a 12 billes de plus que Merlin.", "question": "Combien de billes Merlin a-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "13", "delta": "+12", "apres": "?"}, {"kind": "partiestout", "tout": "25", "parts": ["?", "12"]}, {"kind": "comparaison", "grand": "?", "petit": "13", "ecart": "12"}, {"kind": "comparaison", "grand": "25", "petit": "?", "ecart": "12"}]}, {"type": "equation", "expected": "25 - 12 = 13"}, {"type": "reponse", "fixedPrefix": "Merlin a", "fixedSuffix": ".", "expectedBlank": "13 billes"}]}, {"recto": "Carte 36/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Un marchand a 30 pommes. Il a 11 poires de moins que de pommes.", "question": "Combien a-t-il de poires ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "30", "parts": ["?", "11"]}, {"kind": "transformation", "avant": "19", "delta": "+11", "apres": "?"}, {"kind": "comparaison", "grand": "30", "petit": "?", "ecart": "11"}, {"kind": "comparaison", "grand": "?", "petit": "19", "ecart": "11"}]}, {"type": "equation", "expected": "30 - 11 = 19"}, {"type": "reponse", "fixedPrefix": "Il a", "fixedSuffix": ".", "expectedBlank": "19 poires"}]}, {"recto": "Carte 37/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "La bibliothèque a 32 livres. Le coin lecture en a 14 de moins.", "question": "Combien y a-t-il de livres dans le coin lecture ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "18", "delta": "+14", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "18", "ecart": "14"}, {"kind": "comparaison", "grand": "32", "petit": "?", "ecart": "14"}, {"kind": "partiestout", "tout": "32", "parts": ["?", "14"]}]}, {"type": "equation", "expected": "32 - 14 = 18"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "18 livres dans le coin lecture"}]}, {"recto": "Carte 38/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Le trajet en bus dure 48 minutes. Le trajet en voiture dure 17 minutes de moins.", "question": "Combien de temps dure le trajet en voiture ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "31", "delta": "+17", "apres": "?"}, {"kind": "comparaison", "grand": "48", "petit": "?", "ecart": "17"}, {"kind": "comparaison", "grand": "?", "petit": "31", "ecart": "17"}, {"kind": "partiestout", "tout": "48", "parts": ["?", "17"]}]}, {"type": "equation", "expected": "48 - 17 = 31"}, {"type": "reponse", "fixedPrefix": "Le trajet en voiture dure", "fixedSuffix": ".", "expectedBlank": "31 minutes"}]}, {"recto": "Carte 39/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans le club, il y a 52 basketteurs. Il y a 19 footballeurs de moins que de basketteurs.", "question": "Combien y a-t-il de footballeurs ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "52", "parts": ["?", "19"]}, {"kind": "transformation", "avant": "33", "delta": "+19", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "33", "ecart": "19"}, {"kind": "comparaison", "grand": "52", "petit": "?", "ecart": "19"}]}, {"type": "equation", "expected": "52 - 19 = 33"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "33 footballeurs"}]}, {"recto": "Carte 40/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Une tablette de chocolat pèse 200 g. Un paquet de biscuits pèse 75 g de moins.", "question": "Combien pèse le paquet de biscuits ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "125", "delta": "+75", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "125", "ecart": "75"}, {"kind": "comparaison", "grand": "200", "petit": "?", "ecart": "75"}, {"kind": "partiestout", "tout": "200", "parts": ["?", "75"]}]}, {"type": "equation", "expected": "200 - 75 = 125"}, {"type": "reponse", "fixedPrefix": "Le paquet de biscuits pèse", "fixedSuffix": ".", "expectedBlank": "125 g"}]}, {"recto": "Carte 41/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Un paquet de pâtes pèse 500 g. Un paquet de semoule pèse 250 g de moins.", "question": "Combien pèse le paquet de semoule ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "500", "petit": "?", "ecart": "250"}, {"kind": "comparaison", "grand": "?", "petit": "250", "ecart": "250"}, {"kind": "transformation", "avant": "250", "delta": "+250", "apres": "?"}, {"kind": "partiestout", "tout": "500", "parts": ["?", "250"]}]}, {"type": "equation", "expected": "500 - 250 = 250"}, {"type": "reponse", "fixedPrefix": "Le paquet de semoule pèse", "fixedSuffix": ".", "expectedBlank": "250 g"}]}, {"recto": "Carte 42/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Mila parcourt 870 m pour aller à l'école. Fabio parcourt 300 m de moins que Mila.", "question": "A quelle distance de l'école Fabio habite-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "870", "parts": ["?", "300"]}, {"kind": "comparaison", "grand": "870", "petit": "?", "ecart": "300"}, {"kind": "transformation", "avant": "570", "delta": "+300", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "570", "ecart": "300"}]}, {"type": "equation", "expected": "870 - 300 = 570"}, {"type": "reponse", "fixedPrefix": "Fabio habite à", "fixedSuffix": ".", "expectedBlank": "570 m de l'école"}]}, {"recto": "Carte 43/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Djibril a 12 timbres. Clara en a 2 de moins que Djibril.", "question": "Combien de timbres Clara a-t-elle ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"]], "correct": 2}, {"type": "schema", "correct": 3, "options": [{"kind": "comparaison", "grand": "?", "petit": "10", "ecart": "2"}, {"kind": "transformation", "avant": "10", "delta": "+2", "apres": "?"}, {"kind": "partiestout", "tout": "12", "parts": ["?", "2"]}, {"kind": "comparaison", "grand": "12", "petit": "?", "ecart": "2"}]}, {"type": "equation", "expected": "12 - 2 = 10"}, {"type": "reponse", "fixedPrefix": "Clara a", "fixedSuffix": ".", "expectedBlank": "10 timbres"}]}, {"recto": "Carte 44/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "L'écureuil brun a 50 noisettes. L'écureuil roux en a 4 de moins.", "question": "Combien de noisettes l'écureuil roux a-t-il ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "comparaison", "grand": "?", "petit": "46", "ecart": "4"}, {"kind": "partiestout", "tout": "50", "parts": ["?", "4"]}, {"kind": "comparaison", "grand": "50", "petit": "?", "ecart": "4"}, {"kind": "transformation", "avant": "46", "delta": "+4", "apres": "?"}]}, {"type": "equation", "expected": "50 - 4 = 46"}, {"type": "reponse", "fixedPrefix": "L'écureuil roux a", "fixedSuffix": ".", "expectedBlank": "46 noisettes"}]}, {"recto": "Carte 45/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Maël a 18 images. Sa sœur a 6 images de moins que lui.", "question": "Combien sa sœur a-t-elle d'images ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "12", "delta": "+6", "apres": "?"}, {"kind": "comparaison", "grand": "18", "petit": "?", "ecart": "6"}, {"kind": "partiestout", "tout": "18", "parts": ["?", "6"]}, {"kind": "comparaison", "grand": "?", "petit": "12", "ecart": "6"}]}, {"type": "equation", "expected": "18 - 6 = 12"}, {"type": "reponse", "fixedPrefix": "Sa sœur a", "fixedSuffix": ".", "expectedBlank": "12 images"}]}, {"recto": "Carte 46/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "La maîtresse a 24 crayons. Elle en a 8 de plus que l'année dernière.", "question": "Combien avait-elle de crayons l'année dernière ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "16", "delta": "+8", "apres": "?"}, {"kind": "comparaison", "grand": "?", "petit": "16", "ecart": "8"}, {"kind": "comparaison", "grand": "24", "petit": "?", "ecart": "8"}, {"kind": "partiestout", "tout": "24", "parts": ["?", "8"]}]}, {"type": "equation", "expected": "24 - 8 = 16"}, {"type": "reponse", "fixedPrefix": "Elle avait", "fixedSuffix": ".", "expectedBlank": "16 crayons l'année dernière"}]}, {"recto": "Carte 47/60", "verso": "Comparaison — recherche du plus petit", "rappel": false, "items": [{"type": "enonce", "enonce": "Le tube de dentifrice pèse 175 g. Le savon pèse 50 g de moins que le dentifrice.", "question": "Combien pèse le savon ?"}, {"type": "famille", "options": [["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche de l'écart"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "comparaison", "grand": "175", "petit": "?", "ecart": "50"}, {"kind": "partiestout", "tout": "175", "parts": ["?", "50"]}, {"kind": "comparaison", "grand": "?", "petit": "125", "ecart": "50"}, {"kind": "transformation", "avant": "125", "delta": "+50", "apres": "?"}]}, {"type": "equation", "expected": "175 - 50 = 125"}, {"type": "reponse", "fixedPrefix": "Le savon pèse", "fixedSuffix": ".", "expectedBlank": "125 g"}]}, {"recto": "Carte 48/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Trois villes se trouvent à des distances différentes de Paris : Lyon à 465 km, Nantes à 385 km, Strasbourg à 490 km.", "question": "Quelle est la différence de distance entre Nantes et Strasbourg ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus grand"], ["Comparaison", "recherche du plus petit"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "490", "parts": ["?", "105"]}, {"kind": "comparaison", "grand": "490", "petit": "385", "ecart": "?"}, {"kind": "comparaison", "grand": "?", "petit": "385", "ecart": "105"}, {"kind": "transformation", "avant": "385", "delta": "+105", "apres": "?"}]}, {"type": "equation", "expected": "490 - 385 = 105"}, {"type": "reponse", "fixedPrefix": "La différence est de", "fixedSuffix": ".", "expectedBlank": "105 km"}]}, {"recto": "Carte 49/60", "verso": "Comparaison — recherche de l'écart", "rappel": false, "items": [{"type": "enonce", "enonce": "Trois amis mesurent leur taille : Léna mesure 128 cm, Yanis mesure 135 cm, Camille mesure 122 cm.", "question": "Quelle est la différence de taille entre Yanis et Camille ?"}, {"type": "famille", "options": [["Comparaison", "recherche de l'écart"], ["Comparaison", "recherche du plus petit"], ["Comparaison", "recherche du plus grand"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "comparaison", "grand": "?", "petit": "122", "ecart": "13"}, {"kind": "transformation", "avant": "122", "delta": "+13", "apres": "?"}, {"kind": "comparaison", "grand": "135", "petit": "122", "ecart": "?"}, {"kind": "partiestout", "tout": "135", "parts": ["?", "13"]}]}, {"type": "equation", "expected": "135 - 122 = 13"}, {"type": "reponse", "fixedPrefix": "La différence est de", "fixedSuffix": ".", "expectedBlank": "13 cm"}]}, {"recto": "Carte 50/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Léo a 250 €. Il achète un vélo à 95 € et un casque à 38 €.", "question": "Combien lui reste-t-il ?"}, {"type": "famille", "options": [["Parties-tout", ""], ["Mixte", ""]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "?", "delta": "+95", "apres": "250"}, {"kind": "transformation", "avant": "95", "delta": "+38", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["95", "38", "117"]}, {"kind": "partiestout", "tout": "250", "parts": ["95", "38", "?"]}]}, {"type": "equation", "expected": "95 + 38 = 133", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "250 - 133 = 117", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Il reste", "fixedSuffix": ".", "expectedBlank": "117 euros à Léo"}]}, {"recto": "Carte 51/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "À la boulangerie, madame Petit achète une tarte à 14 € et un gâteau à 19 €. Elle donne un billet de 50 €.", "question": "Combien la vendeuse lui rend-elle ?"}, {"type": "famille", "options": [["Parties-tout", ""], ["Mixte", ""]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+14", "apres": "50"}, {"kind": "partiestout", "tout": "50", "parts": ["14", "19", "?"]}, {"kind": "transformation", "avant": "14", "delta": "+19", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["14", "19", "17"]}]}, {"type": "equation", "expected": "14 + 19 = 33", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "50 - 33 = 17", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "La vendeuse lui rend", "fixedSuffix": ".", "expectedBlank": "17 euros"}]}, {"recto": "Carte 52/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans son album, Léo a 237 timbres français et 179 timbres étrangers. Son oncle lui donne 59 timbres.", "question": "De combien de timbres se compose la collection de Léo maintenant ?"}, {"type": "famille", "options": [["Mixte", ""], ["Parties-tout", ""]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "237", "delta": "+179", "apres": "?"}, {"kind": "partiestout", "tout": "475", "parts": ["?", "179", "59"]}, {"kind": "partiestout", "tout": "?", "parts": ["237", "179", "59"]}, {"kind": "transformation", "avant": "?", "delta": "+237", "apres": "475"}]}, {"type": "equation", "expected": "237 + 179 = 416", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "416 + 59 = 475", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Léo a maintenant", "fixedSuffix": ".", "expectedBlank": "475 timbres"}]}, {"recto": "Carte 53/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Mattéo a 24 billes rouges et 18 billes bleues. Sa sœur Zineb a 12 billes de plus que Mattéo.", "question": "Combien de billes Zineb a-t-elle ?"}, {"type": "famille", "options": [["Parties-tout", ""], ["Mixte", ""]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "54", "parts": ["?", "18", "12"]}, {"kind": "transformation", "avant": "24", "delta": "+18", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["24", "18", "12"]}, {"kind": "transformation", "avant": "?", "delta": "+24", "apres": "54"}]}, {"type": "equation", "expected": "24 + 18 = 42", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "42 + 12 = 54", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Zineb a", "fixedSuffix": ".", "expectedBlank": "54 billes"}]}, {"recto": "Carte 54/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans la classe de CE1, il y a 28 élèves : 16 filles et des garçons. Dans la classe de CE2, il y a 5 garçons de plus que dans la classe de CE1.", "question": "Combien y a-t-il de garçons dans la classe de CE2 ?"}, {"type": "famille", "options": [["Parties-tout", ""], ["Mixte", ""]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "16", "delta": "?", "apres": "28"}, {"kind": "partiestout", "tout": "28", "parts": ["16", "?"]}, {"kind": "partiestout", "tout": "28", "parts": ["?", "12"]}, {"kind": "comparaison", "petit": "?", "ecart": "12", "grand": "28"}]}, {"type": "equation", "expected": "28 - 16 = 12", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "12 + 5 = 17", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "17 garçons en CE2"}]}, {"recto": "Carte 55/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Un marchand a vendu 34 kilos de pommes et 19 kilos de poires. Un second marchand a vendu 15 kilos de moins que le premier.", "question": "Combien ce second marchand a-t-il vendu de kilos ?"}, {"type": "famille", "options": [["Mixte", ""], ["Parties-tout", ""]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "comparaison", "petit": "?", "ecart": "19", "grand": "53"}, {"kind": "partiestout", "tout": "53", "parts": ["?", "19"]}, {"kind": "transformation", "avant": "34", "delta": "+19", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["34", "19"]}]}, {"type": "equation", "expected": "34 + 19 = 53", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "53 - 15 = 38", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Le second marchand a vendu", "fixedSuffix": ".", "expectedBlank": "38 kg de fruits"}]}, {"recto": "Carte 56/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans un sac, il y a 45 billes : 28 sont rouges, le reste est bleu.", "question": "Quel est l'écart entre le nombre de billes rouges et le nombre de billes bleues ?"}, {"type": "famille", "options": [["Mixte", ""], ["Parties-tout", ""]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "45", "parts": ["?", "17"]}, {"kind": "comparaison", "petit": "?", "ecart": "17", "grand": "45"}, {"kind": "transformation", "avant": "28", "delta": "?", "apres": "45"}, {"kind": "partiestout", "tout": "45", "parts": ["28", "?"]}]}, {"type": "equation", "expected": "45 - 28 = 17", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "28 - 17 = 11", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "11 billes d'écart"}]}, {"recto": "Carte 57/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Le matin, la boulangère avait 45 croissants. Elle en a vendu 28. Maintenant, le pâtissier voisin, M. Haddad, a 15 croissants de plus qu'elle.", "question": "Combien de croissants M. Haddad a-t-il ?"}, {"type": "famille", "options": [["Mixte", ""], ["Transformation", ""]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "-28", "apres": "17"}, {"kind": "transformation", "avant": "45", "delta": "-28", "apres": "?"}, {"kind": "comparaison", "petit": "?", "ecart": "28", "grand": "17"}, {"kind": "partiestout", "tout": "?", "parts": ["45", "28"]}]}, {"type": "equation", "expected": "45 - 28 = 17", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "17 + 15 = 32", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Monsieur Haddad a", "fixedSuffix": ".", "expectedBlank": "32 croissants"}]}, {"recto": "Carte 58/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Un fermier a des poules. Ce matin, il en a vendu 14 : il lui en reste maintenant 36. Sa voisine, Mme Cissé, a 8 poules de moins que ce que le fermier avait avant de vendre.", "question": "Combien de poules Mme Cissé a-t-elle ?"}, {"type": "famille", "options": [["Mixte", ""], ["Transformation", ""]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "36", "parts": ["?", "14"]}, {"kind": "comparaison", "petit": "50", "ecart": "?", "grand": "36"}, {"kind": "transformation", "avant": "?", "delta": "-14", "apres": "36"}, {"kind": "transformation", "avant": "50", "delta": "?", "apres": "36"}]}, {"type": "equation", "expected": "36 + 14 = 50", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "50 - 8 = 42", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Madame Cissé a", "fixedSuffix": ".", "expectedBlank": "42 poules"}]}, {"recto": "Carte 59/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Nora avait 60 images. Elle en a donné 22 à des amies. Son cousin Ilyan en a 10 de moins qu'elle maintenant.", "question": "Combien Ilyan a-t-il d'images ?"}, {"type": "famille", "options": [["Mixte", ""], ["Transformation", ""]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "60", "delta": "-22", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "-22", "apres": "38"}, {"kind": "comparaison", "petit": "?", "ecart": "22", "grand": "38"}, {"kind": "partiestout", "tout": "?", "parts": ["60", "22"]}]}, {"type": "equation", "expected": "60 - 22 = 38", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "38 - 10 = 28", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Ilyan a", "fixedSuffix": ".", "expectedBlank": "28 images"}]}, {"recto": "Carte 60/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Un pêcheur a relâché 18 poissons. Il lui en reste maintenant 47. Avant de les relâcher, il avait un certain nombre de poissons. Son ami Théo a 12 poissons de plus que ce nombre.", "question": "Combien de poissons Théo a-t-il ?"}, {"type": "famille", "options": [["Transformation", ""], ["Mixte", ""]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "?", "delta": "-18", "apres": "47"}, {"kind": "comparaison", "petit": "65", "ecart": "?", "grand": "47"}, {"kind": "transformation", "avant": "65", "delta": "?", "apres": "47"}, {"kind": "partiestout", "tout": "47", "parts": ["?", "18"]}]}, {"type": "equation", "expected": "47 + 18 = 65", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "65 + 12 = 77", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Théo a", "fixedSuffix": ".", "expectedBlank": "77 poissons"}]}];
+const ITEM_LABEL = "ÉTAPE";
+const PAGE_TITLE = "Ceinture BLEUE";
+const TEACHER_EMAIL = "euryale_tsipora@protonmail.me";
+const TEACHER_PIN = "0616";
+const EMAIL_ENABLED = false; // desactive temporairement l'ouverture de la messagerie en fin de seance ; le PDF continue d'etre genere et telecharge normalement
+const SESSION_STORAGE_KEY = 'calcpose_sessionLog';
+const NAME_STORAGE_KEY = 'calcpose_studentName';
+let cardIdx = 0;
+let showingCorrection = false;
+let teacherMode = false;
+let hasAttemptedCurrent = false;
+
+// La seance est memorisee dans le navigateur (localStorage) pour survivre a un
+// changement de page (une ceinture = un fichier different) : sans ca, tout ce
+// qui a ete fait sur une ceinture visitee avant celle-ci serait perdu au moment
+// du PDF final. Repli silencieux sur une seance vide si localStorage est
+// indisponible (navigation privee, restrictions navigateur...).
+function chargerSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+function sauverSession(){
+  try { localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionLog)); } catch(e) {}
+}
+function chargerNomEleve(){
+  const injecte = "";
+  if(injecte) return injecte; // fiche personnalisee : le nom est deja connu, prioritaire
+  try { return localStorage.getItem(NAME_STORAGE_KEY) || ""; } catch(e) { return ""; }
+}
+function sauverNomEleve(){
+  try { localStorage.setItem(NAME_STORAGE_KEY, studentName); } catch(e) {}
+}
+function viderSession(){
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); localStorage.removeItem(NAME_STORAGE_KEY); } catch(e) {}
+  sessionLog = [];
+}
+
+let sessionLog = chargerSession(); // {belt, carte, ok, results}
+let studentName = chargerNomEleve();
+
+function updateSessionScore(){
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  document.getElementById('session-score').textContent = `Séance : ${ok}/${total}`;
+}
+
+function render(){
+  showingCorrection = false;
+  hasAttemptedCurrent = false;
+  updateCalcArea();
+  document.getElementById('progress-btn').textContent = `Carte ${cardIdx+1} / ${CARDS.length}`;
+}
+
+function updateCalcArea(){
+  const card = CARDS[cardIdx];
+  const beltTag = card.belt_name
+    ? `<span class="belt-origin-tag" style="background:${card.belt_color};">${card.belt_name}</span>`
+    : '';
+  document.getElementById('carte-indicator').innerHTML =
+    `CARTE ${cardIdx+1}` + beltTag + (card.rappel ? '<span class="rappel-tag">(rappel)</span>' : '');
+  document.getElementById('palier-label').innerHTML = showingCorrection ? card.verso : card.recto;
+  document.getElementById('calc-area').innerHTML = renderCard(card.items, showingCorrection);
+  document.getElementById('feedback-msg').textContent = '';
+  document.getElementById('feedback-msg').className = '';
+  document.getElementById('btn-verifier').style.display = showingCorrection ? 'none' : '';
+  refreshCorrectionButton();
+}
+
+function refreshCorrectionButton(){
+  const btnCorrection = document.getElementById('btn-correction');
+  const locked = !teacherMode && !hasAttemptedCurrent && !showingCorrection;
+  btnCorrection.disabled = locked;
+  btnCorrection.title = locked ? "Vérifie d'abord ta réponse pour débloquer la correction" : "";
+  btnCorrection.textContent = locked
+    ? '🔒 Vérifie ta réponse d\'abord'
+    : (showingCorrection ? 'Retour à l\'énoncé (espace)' : 'Voir la correction (espace)');
+}
+
+function verifierReponse(){
+  const card = CARDS[cardIdx];
+  if(typeof checkCard === 'function'){
+    const results = checkCard(card.items); // tableau de booleens, un par calcul de la carte
+    const allOk = results.every(r => r);
+    const msg = document.getElementById('feedback-msg');
+    if(allOk){
+      msg.textContent = 'Bravo, tout est juste !';
+    } else if(results.some(r => r)){
+      const nOk = results.filter(r => r).length;
+      msg.textContent = `${nOk} sur ${results.length} sont justes — corrige et réessaie.`;
+    } else {
+      msg.textContent = 'Pas encore juste — corrige et réessaie.';
+    }
+    msg.className = allOk ? 'ok' : 'ko';
+    results.forEach((ok, i) => {
+      const label = document.getElementById(`item-label-${i}`);
+      if(label){
+        label.classList.remove('correct', 'incorrect');
+        label.classList.add(ok ? 'correct' : 'incorrect');
+      }
+    });
+    hasAttemptedCurrent = true;
+    const beltLabel = card.belt_name || PAGE_TITLE;
+    sessionLog.push({belt: beltLabel, carte: cardIdx+1, ok: allOk, results: results});
+    sauverSession();
+    updateSessionScore();
+    refreshCorrectionButton();
+  }
+}
+
+function toggleTeacherMode(){
+  if(teacherMode){
+    teacherMode = false;
+    document.getElementById('btn-mode').textContent = '👤 Élève';
+    document.getElementById('btn-mode').classList.remove('teacher');
+  } else {
+    const code = prompt("Code enseignant :");
+    if(code === null) return;
+    if(code === TEACHER_PIN){
+      teacherMode = true;
+      document.getElementById('btn-mode').textContent = '🔓 Enseignant';
+      document.getElementById('btn-mode').classList.add('teacher');
+    } else {
+      alert("Code incorrect.");
+      return;
+    }
+  }
+  refreshCorrectionButton();
+}
+
+const LETTRES = ['A','B','C','D','E','F'];
+
+function terminerSeance(){
+  if(sessionLog.length === 0){
+    alert("Aucune vérification n'a encore été faite pendant cette séance.");
+    return;
+  }
+  if(!studentName){
+    const saisie = prompt("Quel est ton prénom ?");
+    if(!saisie){ alert("Le prénom est nécessaire pour enregistrer la séance."); return; }
+    studentName = saisie.trim();
+    sauverNomEleve();
+  }
+
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  const dateStr = new Date().toLocaleDateString('fr-FR');
+  const heureStr = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  const titreComplet = `${studentName} — ${dateStr}`;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`Séance de calcul posé — ${titreComplet}`, 14, 18);
+  doc.setFontSize(11);
+  doc.text(`Date : ${dateStr} à ${heureStr}`, 14, 28);
+  doc.text(`Score de la séance : ${ok} / ${total}`, 14, 36);
+  doc.text("Détail (toutes ceintures travaillées pendant la séance) :", 14, 46);
+  let y = 54;
+  sessionLog.forEach((e, i) => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    const detail = e.results
+      ? e.results.map((r, k) => `${LETTRES[k] || (k+1)}:${r ? 'juste' : 'à revoir'}`).join('  ')
+      : (e.ok ? 'juste' : 'à revoir');
+    doc.text(`${i+1}. ${e.belt} — Carte ${e.carte} — ${detail}`, 18, y);
+    y += 7;
+  });
+
+  const slug = studentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,'_');
+  const fname = `seance_${slug}_${dateStr.replace(/\//g,'-')}.pdf`;
+  doc.save(fname);
+
+  if(EMAIL_ENABLED){
+    const sujet = encodeURIComponent(`Séance calcul posé — ${titreComplet}`);
+    const corps = encodeURIComponent(
+      `Bonjour,\n\nVoici le résumé de séance de ${studentName} du ${dateStr} à ${heureStr}.\n` +
+      `Score : ${ok}/${total}.\n\nLe fichier "${fname}" vient d'être téléchargé — merci de le joindre à cet e-mail avant de l'envoyer.\n`
+    );
+    const mailto = `mailto:${TEACHER_EMAIL}?subject=${sujet}&body=${corps}`;
+    window.location.href = mailto;
+  } else {
+    alert(`Séance enregistrée ! Le fichier "${fname}" vient d'être téléchargé — tu peux le transmettre à l'enseignant(e) si tu le souhaites.`);
+  }
+
+  viderSession();
+  studentName = "";
+  updateSessionScore();
+}
+
+function toggleCorrection(){
+  if(!teacherMode && !hasAttemptedCurrent && !showingCorrection) return; // verrouille tant que non tente
+  showingCorrection = !showingCorrection;
+  updateCalcArea();
+}
+function go(delta){
+  cardIdx = (cardIdx + delta + CARDS.length) % CARDS.length;
+  render();
+}
+function goTo(n){
+  cardIdx = Math.max(0, Math.min(CARDS.length-1, n-1));
+  render();
+  closePicker();
+}
+
+function openPicker(){
+  const grid = document.getElementById('picker-grid');
+  grid.innerHTML = '';
+  CARDS.forEach((card, i) => {
+    const b = document.createElement('button');
+    b.textContent = i+1;
+    if(i === cardIdx) b.classList.add('current');
+    b.onclick = () => goTo(i+1);
+    grid.appendChild(b);
+  });
+  document.getElementById('overlay').classList.add('show');
+}
+function closePicker(){ document.getElementById('overlay').classList.remove('show'); }
+
+document.getElementById('progress-btn').onclick = openPicker;
+document.getElementById('picker-close').onclick = closePicker;
+document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closePicker(); };
+document.getElementById('picker-go').onclick = ()=>{
+  const v = parseInt(document.getElementById('picker-input').value);
+  if(v) goTo(v);
+};
+document.getElementById('prev').onclick = ()=>go(-1);
+document.getElementById('next').onclick = ()=>go(1);
+document.getElementById('btn-correction').onclick = toggleCorrection;
+document.getElementById('btn-verifier').onclick = verifierReponse;
+document.getElementById('btn-fin-seance').onclick = terminerSeance;
+document.getElementById('btn-mode').onclick = toggleTeacherMode;
+document.addEventListener('keydown', (e)=>{
+  if(document.getElementById('overlay').classList.contains('show')) return;
+  if(e.key === 'ArrowRight') go(1);
+  else if(e.key === 'ArrowLeft') go(-1);
+  else if(e.key === ' '){ e.preventDefault(); toggleCorrection(); }
+});
+
+render();
+updateSessionScore();
+</script>
+</body>
+</html>

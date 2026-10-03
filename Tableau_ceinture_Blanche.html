@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Ceinture BLANCHE</title>
+<style>
+  :root {
+    --belt-color: #B4B2A9;
+    --belt-color-pale: color-mix(in srgb, var(--belt-color) 16%, white);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    background: #f4f4f4; height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--belt-color-pale); padding: 14px 24px; display: flex;
+    align-items: center; justify-content: space-between; border-bottom: 3px solid var(--belt-color);
+  }
+  header h1 { margin: 0; font-size: 1.8rem; color: #1a1a1a; }
+  header a.home { text-decoration: none; color: #555; font-size: 1.3rem; margin-right: 14px; }
+  #progress-btn {
+    font-size: 1.5rem; font-weight: bold; background: white; border: 2px solid #1a1a1a;
+    border-radius: 24px; padding: 8px 22px; cursor: pointer;
+  }
+  #progress-btn:hover { background: #eee; }
+  #session-score { font-size: 1.1rem; font-weight: bold; color: #333; }
+  #btn-fin-seance {
+    font-size: 1rem; font-weight: bold; background: #2F3B52; color: white; border: none;
+    border-radius: 20px; padding: 8px 18px; cursor: pointer;
+  }
+  #btn-fin-seance:hover { filter: brightness(1.2); }
+  #btn-mode {
+    font-size: 1rem; font-weight: bold; background: white; color: #333;
+    border: 2px solid #999; border-radius: 20px; padding: 7px 16px; cursor: pointer;
+  }
+  #btn-mode.teacher { background: #2E8B57; color: white; border-color: #2E8B57; }
+  #btn-correction:disabled {
+    background: #ccc; color: #777; cursor: not-allowed; filter: none;
+  }
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center; position: relative;
+  }
+  #carte-indicator {
+    font-size: 2.2rem; font-weight: 900; color: var(--belt-color);
+    background: var(--belt-color-pale); border: 3px solid var(--belt-color);
+    border-radius: 14px; padding: 14px 36px; margin-bottom: 40px; letter-spacing: 0.03em;
+  }
+  #palier-label { font-size: 1.5rem; color: var(--belt-color); font-weight: bold; margin-bottom: 44px; text-transform: uppercase; }
+  #calc-area { font-size: 4rem; font-weight: bold; color: #1a1a1a; margin-bottom: 56px; }
+  .rappel-tag { font-size: 1.4rem; color: #0B5FA5; font-style: italic; display: block; margin-top: 14px; }
+  .belt-origin-tag {
+    display: inline-block; font-size: 0.9rem; font-weight: bold; color: white;
+    border-radius: 20px; padding: 3px 14px; margin-left: 14px; vertical-align: middle;
+    text-transform: none;
+  }
+
+  #btn-correction {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: var(--belt-color); color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-correction:hover { filter: brightness(0.92); }
+  #btn-verifier {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: #2E8B57; color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-verifier:hover { filter: brightness(0.92); }
+  #feedback-msg {
+    font-size: 1.4rem; font-weight: bold; min-height: 2.2rem; margin-bottom: 8px;
+  }
+  #feedback-msg.ok { color: #2E8B57; }
+  #feedback-msg.ko { color: #C0392B; }
+  input.digit-input, input.line-input {
+    font-family: inherit; font-weight: bold; text-align: center; border-radius: 6px;
+    border: 2px solid #999;
+  }
+  input.digit-input.correct, input.line-input.correct, input.carry-input.correct, input.cassage-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  input.digit-input.incorrect, input.line-input.incorrect, input.carry-input.incorrect, input.cassage-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+
+  nav.arrows { display: flex; justify-content: space-between; align-items: center; padding: 14px 30px; }
+  nav.arrows button {
+    width: 60px; height: 60px; border-radius: 50%; border: 2px solid #1a1a1a; background: white;
+    font-size: 1.8rem; cursor: pointer;
+  }
+  nav.arrows button:hover { background: #eee; }
+  nav.arrows span { font-size: 1.15rem; color: #555; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10; }
+  #overlay.show { display: flex; }
+  #picker { background: white; border-radius: 12px; padding: 28px 32px; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+  #picker h2 { margin: 0 0 18px 0; font-size: 1.5rem; color: var(--belt-color); font-weight: bold; }
+  #picker-jump { display: flex; gap: 10px; margin-bottom: 20px; }
+  #picker-input { flex: 1; min-width: 260px; padding: 10px 14px; font-size: 1rem; border: 2px solid var(--belt-color); border-radius: 8px; }
+  #picker-go { padding: 10px 22px; font-size: 1rem; font-weight: bold; cursor: pointer; background: var(--belt-color); color: white; border: none; border-radius: 8px; }
+  #picker-go:hover { filter: brightness(0.92); }
+  #picker-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 22px; }
+  #picker-grid button { padding: 10px 0; border: 2px solid var(--belt-color); border-radius: 10px; background: white; color: var(--belt-color); font-weight: bold; font-size: 1rem; cursor: pointer; }
+  #picker-grid button:hover { background: var(--belt-color-pale); }
+  #picker-grid button.current { background: var(--belt-color); color: white; }
+  #picker-close { background: #8a8a8a; color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 1rem; cursor: pointer; }
+  #picker-close:hover { background: #767676; }
+  
+  header { padding: 6px 24px !important; }
+  #btn-correction { padding: 7px 28px !important; }
+  #btn-verifier { padding: 7px 28px !important; }
+  nav.arrows { padding: 6px 30px !important; }
+  #carte-indicator { margin-bottom: 1px !important; padding: 2px 20px !important; }
+  #palier-label { margin-bottom: 1px !important; font-size: 1.1rem !important; }
+  #calc-area { margin-bottom: 2px !important; }
+  main { padding: 2px 20px !important; }
+  #feedback-msg { min-height: 0.9rem !important; margin-bottom: 0px !important; }
+  .step-block input.line-input { border-radius: 6px; border: 2px solid #999; padding: 2px 8px; }
+  .step-block input.line-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  .step-block input.line-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+  .schema-opt.selected { border-color: #555 !important; }
+  .item-label.correct { color: #2E8B57; border-color: #2E8B57 !important; background: #DFF3E1; }
+  .item-label.incorrect { color: #C0392B; border-color: #C0392B !important; background: #FBE0DE; }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;">
+    <a class="home" href="index.html" title="Retour à l'index">🏠</a>
+    <h1>Ceinture BLANCHE</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span id="session-score">Séance : 0/0</span>
+    <button id="btn-fin-seance">Terminer la séance</button>
+    <button id="btn-mode" title="Déverrouiller la correction libre">👤 Élève</button>
+    <button id="progress-btn">Carte 1 / 20</button>
+  </div>
+</header>
+<main>
+  <div id="carte-indicator"></div>
+  <div id="palier-label"></div>
+  <div id="calc-area"></div>
+  <div id="feedback-msg"></div>
+  <div style="display:flex; gap:28px; margin-top:8px;">
+    <button id="btn-verifier">Vérifier ma réponse</button>
+    <button id="btn-correction">Voir la correction (espace)</button>
+  </div>
+</main>
+<nav class="arrows">
+  <button id="prev">←</button>
+  <span>Flèches ← → au clavier, ou clique sur le numéro en haut</span>
+  <button id="next">→</button>
+</nav>
+
+<div id="overlay">
+  <div id="picker">
+    <h2>Aller à la carte...</h2>
+    <div id="picker-jump">
+      <input type="number" id="picker-input" min="1" placeholder="N° de carte (1-20)">
+      <button id="picker-go">Aller</button>
+    </div>
+    <div id="picker-grid"></div>
+    <button id="picker-close">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Contenu specifique a la discipline (fourni par l'appelant) :
+// doit definir renderCard(items, showCorrection) -> HTML string, et checkCard(items) -> tableau de booleens
+// ============================================================
+
+const STEP_LABELS = {famille: "Famille", schema: "Schéma", equation: "Calcul", reponse: "Réponse"};
+
+// Mémorise, par carte et par étape, la dernière réponse CORRECTE donnée --
+// pour qu'un retour "Voir la correction" -> "Retour à l'énoncé" ne réinitialise
+// que les étapes encore fausses, pas celles déjà réussies.
+let stepState = {};
+function stepKey(prefix){ return `${cardIdx}-${prefix}`; }
+
+function normEq(s){
+  return s.trim().toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[×x]/g, "x")
+    .replace(/[−-]/g, "-")
+    .replace(/[÷]/g, "/");
+}
+function eqMatches(given, expected){
+  const g = normEq(given), e = normEq(expected);
+  if(g === e) return true;
+  // Commutativité : a+b+...=r (addition) ou a x b x ...=r (multiplication)
+  // acceptée dans n'importe quel ordre des termes -- jamais pour -, / ou un
+  // mélange d'opérateurs, où l'ordre reste significatif.
+  const parseCommutative = (s, opChar) => {
+    const escaped = opChar === "x" ? "x" : "\\" + opChar;
+    const re = new RegExp(`^([\\d${escaped}]+)=(\\d+)$`);
+    const m = s.match(re);
+    if(!m) return null;
+    const terms = m[1].split(opChar).filter(t => t.length);
+    if(terms.length < 2) return null;
+    return { terms: terms.sort(), result: m[2] };
+  };
+  for(const op of ["+", "x"]){
+    const pg = parseCommutative(g, op), pe = parseCommutative(e, op);
+    if(pg && pe && pg.result === pe.result && pg.terms.length === pe.terms.length
+       && pg.terms.every((t, i) => t === pe.terms[i])){
+      return true;
+    }
+  }
+  return false;
+}
+function normText(s){
+  return s.trim().toLowerCase()
+    .replace(/\s+/g, " ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function schemaSvg(opt){
+  if(opt.kind === "partiestout"){
+    // "parts" est une liste (2 ou 3 elements) -- generalisation des cartes a
+    // 3 termes (ex. Blanche cartes 16-20 : 3 parties additionnees).
+    const parts = opt.parts || [opt.p1, opt.p2]; // p1/p2 : retrocompatibilite
+    const n = parts.length;
+    const gap = 6, totalW = 168, boxW = (totalW - gap * (n - 1)) / n;
+    let partsSvg = "";
+    parts.forEach((val, i) => {
+      const x = 6 + i * (boxW + gap);
+      partsSvg += `<rect x="${x}" y="40" width="${boxW}" height="20" rx="4" fill="#E1EFFB" stroke="#85B7EB"/>
+        <text x="${x + boxW/2}" y="50" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${val}</text>`;
+    });
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="6" y="6" width="168" height="20" rx="4" fill="#E1EFFB" stroke="#85B7EB"/>
+      <text x="90" y="16" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.tout}</text>
+      ${partsSvg}
+    </svg>`;
+  }
+  if(opt.kind === "transformation"){
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="4" y="22" width="50" height="24" rx="4" fill="#FAE7DE" stroke="#F0997B"/>
+      <text x="29" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.avant}</text>
+      <text x="29" y="58" text-anchor="middle" font-size="9" fill="#8a5a45">avant</text>
+      <line x1="58" y1="34" x2="118" y2="34" stroke="#8a5a45" stroke-width="1.5" marker-end="url(#arrp)"/>
+      <text x="88" y="24" text-anchor="middle" font-size="9" fill="#8a5a45">${opt.delta}</text>
+      <rect x="124" y="22" width="50" height="24" rx="4" fill="#FAE7DE" stroke="#F0997B"/>
+      <text x="149" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.apres}</text>
+      <text x="149" y="58" text-anchor="middle" font-size="9" fill="#8a5a45">après</text>
+      <defs><marker id="arrp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a5a45" stroke-width="1.5"/></marker></defs>
+    </svg>`;
+  }
+  if(opt.kind === "comparaison"){
+    // Modele en barres : "grand" pleine largeur, "petit" plus courte alignee
+    // a gauche, l'ecart materialise par une accolade sur la portion restante.
+    return `<svg viewBox="0 0 180 78" width="100%" height="64">
+      <text x="6" y="10" font-size="9" fill="#6b4d99">grand</text>
+      <rect x="6" y="14" width="168" height="20" rx="4" fill="#EDE3F7" stroke="#B295D9"/>
+      <text x="90" y="24" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.grand}</text>
+      <text x="6" y="46" font-size="9" fill="#6b4d99">petit</text>
+      <rect x="6" y="50" width="100" height="20" rx="4" fill="#EDE3F7" stroke="#B295D9"/>
+      <text x="56" y="60" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.petit}</text>
+      <line x1="106" y1="50" x2="106" y2="14" stroke="#6b4d99" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="140" y="70" text-anchor="middle" font-size="9" fill="#6b4d99">écart : ${opt.ecart}</text>
+      <line x1="106" y1="76" x2="174" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+      <line x1="106" y1="72" x2="106" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+      <line x1="174" y1="72" x2="174" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+    </svg>`;
+  }
+  if(opt.kind === "multiplicatif"){
+    // "nb de parts x valeur d'une part = produit", meme registre visuel que
+    // Transformation (3 cases en ligne) mais avec un operateur x.
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="2" y="22" width="48" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="26" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.nb_parts}</text>
+      <text x="26" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">nb de parts</text>
+      <text x="56" y="38" text-anchor="middle" font-size="14" fill="#5c7a3f">×</text>
+      <rect x="62" y="22" width="48" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="86" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.valeur_part}</text>
+      <text x="86" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">valeur d'1 part</text>
+      <text x="116" y="38" text-anchor="middle" font-size="14" fill="#5c7a3f">=</text>
+      <rect x="122" y="22" width="52" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="148" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.produit}</text>
+      <text x="148" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">produit</text>
+    </svg>`;
+  }
+  return "";
+}
+
+// --- Visuels "lecture de donnees" (Noire) : graphique en barres, tableau a
+// double entree, horloge decorative pour les problemes de duree. Ce sont des
+// visuels d'ENONCE (jamais notes en tant que tels) -- la notation porte sur
+// les 3 items "reponse" independants qui suivent, chacun avec son propre
+// `question` affiche au-dessus de son champ de saisie (cf. renderOneItem
+// "reponse" plus bas).
+const GRAPH_COLORS = ['#8577B7', '#DFAF4C', '#7BA65C', '#6FA8D6', '#C97B95'];
+
+function graphiqueSvg(visual){
+  const labels = visual.labels, values = visual.values;
+  const axisMax = Math.max(...values, 1); // echelle graduee de 1 en 1 jusqu'a la valeur max
+  // Graphique agrandi (davantage de place qu'auparavant) : barres plus
+  // hautes/larges et polices plus grandes pour rester lisible une fois
+  // affiché en grand dans la carte.
+  const chartH = 280, chartW = 560, barGap = 18, marginLeft = 54;
+  const barW = (chartW - barGap * (labels.length - 1)) / labels.length;
+  let ticksSvg = "";
+  for(let v = 0; v <= axisMax; v++){
+    const y = chartH - (v / axisMax) * chartH;
+    ticksSvg += `<line x1="${marginLeft}" y1="${y+14}" x2="${marginLeft+chartW}" y2="${y+14}" stroke="#e2e2e2" stroke-width="1"/>
+      <text x="${marginLeft-6}" y="${y+18}" text-anchor="end" font-size="15" fill="#888">${v}</text>`;
+  }
+  let barsSvg = "";
+  // Volontairement PAS de valeur affichée au-dessus de chaque barre : l'élève
+  // doit lire la hauteur sur l'échelle graduée, pas recopier un chiffre déjà
+  // donné (demande explicite de l'enseignante).
+  labels.forEach((lab, i) => {
+    const v = values[i];
+    const h = (v / axisMax) * chartH;
+    const x = marginLeft + i * (barW + barGap);
+    const y = 14 + (chartH - h);
+    barsSvg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${GRAPH_COLORS[i % GRAPH_COLORS.length]}" rx="3"/>
+      <text x="${x + barW/2}" y="${chartH + 40}" text-anchor="middle" font-size="15" fill="#444">${lab}</text>`;
+  });
+  const vbW = marginLeft + chartW + 10, vbH = chartH + 56;
+  return `<div style="text-align:center;">
+    ${visual.title ? `<div style="font-weight:bold;font-size:1.3rem;margin-bottom:6px;">${visual.title}</div>` : ''}
+    <svg viewBox="0 0 ${vbW} ${vbH}" width="100%" height="${vbH}" style="max-width:720px;">
+      ${ticksSvg}
+      <line x1="${marginLeft}" y1="${chartH+14}" x2="${marginLeft+chartW}" y2="${chartH+14}" stroke="#888" stroke-width="1.5"/>
+      ${barsSvg}
+    </svg>
+  </div>`;
+}
+
+function tableauHtml(visual){
+  const head = `<th style="border:1px solid #ccc;background:#2F3B52;color:white;padding:8px 18px;"></th>` +
+    visual.colLabels.map(c => `<th style="border:1px solid #ccc;background:#2F3B52;color:white;padding:8px 18px;">${c}</th>`).join("");
+  const rows = visual.rowLabels.map((r, i) => {
+    const cells = visual.data[i].map(v => `<td style="border:1px solid #ccc;padding:8px 18px;text-align:center;">${v}</td>`).join("");
+    return `<tr><th style="border:1px solid #ccc;background:#EAEAF0;padding:8px 18px;">${r}</th>${cells}</tr>`;
+  }).join("");
+  return `<div style="text-align:center;">
+    ${visual.title ? `<div style="font-weight:bold;font-size:1.3rem;margin-bottom:8px;">${visual.title}</div>` : ''}
+    <table style="border-collapse:collapse;margin:0 auto;font-size:1.15rem;">
+      <tr>${head}</tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+
+function dureeSvg(){
+  // Horloge decorative (pas d'heure precise a lire) -- rappelle visuellement
+  // qu'il s'agit de problemes de duree, comme sur la fiche papier d'origine.
+  return `<div style="text-align:center;">
+    <svg viewBox="0 0 80 80" width="70" height="70">
+      <circle cx="40" cy="40" r="34" fill="white" stroke="#555" stroke-width="2.5"/>
+      <line x1="40" y1="40" x2="40" y2="18" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="40" y1="40" x2="58" y2="40" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="40" r="2.5" fill="#555"/>
+    </svg>
+  </div>`;
+}
+
+function renderOneItem(item, showCorrection, prefix){
+  if(item.type === "enonce"){
+    let visualHtml = "";
+    if(item.visual){
+      if(item.visual.kind === "graphique") visualHtml = graphiqueSvg(item.visual);
+      else if(item.visual.kind === "tableau") visualHtml = tableauHtml(item.visual);
+      else if(item.visual.kind === "duree") visualHtml = dureeSvg();
+    }
+    // `hints` (Dorée) : conseils de méthode affichés en aide, jamais notés --
+    // équivalent de l'encadré "Conseils" de la fiche papier. `showEssais` :
+    // ajoute une zone de brouillon libre ("Mes essais") sous l'énoncé, pour
+    // que l'élève puisse tâtonner comme sur la carte papier -- non notée,
+    // non sauvegardée, purement un espace de travail.
+    const hintsHtml = item.hints ? `
+      <div style="margin-top:6px;padding:6px 10px;background:#FBF3DC;border:1px solid #E3C878;border-radius:6px;">
+        <div style="font-weight:bold;font-size:0.8rem;color:#8a6d1a;margin-bottom:2px;">Conseils :</div>
+        <ul style="margin:0;padding-left:18px;font-size:0.85rem;color:#6b551a;">
+          ${item.hints.map(h => `<li>${h}</li>`).join("")}
+        </ul>
+      </div>` : '';
+    const essaisHtml = item.showEssais ? `
+      <div style="margin-top:6px;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">Mes essais :</div>
+        <textarea rows="3" style="width:100%;max-width:600px;font-family:inherit;font-size:0.9rem;border:2px solid #ccc;border-radius:6px;padding:4px 8px;" placeholder="Note ici tes essais et ajustements..."></textarea>
+      </div>` : '';
+    // `imageData` : image reelle (jpg du dossier du projet, encodee en base64
+    // au moment de la generation -- voir build_doree_data.py) -- prioritaire
+    // sur `imagePlaceholder`, qui reste le repli tant qu'aucun fichier jpg
+    // n'existe pour la carte (meme espace reserve, meme dimensions, pour que
+    // la mise en page ne bouge pas quand l'image est ajoutee).
+    const imageHtml = item.imageData ? `
+      <div style="margin-top:6px;width:100%;max-width:720px;height:336px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;">
+        <img src="${item.imageData}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;">
+      </div>` : (item.imagePlaceholder ? `
+      <div style="margin-top:6px;width:100%;max-width:720px;height:336px;border:2px dashed #b8b8b0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.85rem;background:#fff;">
+        Espace pour une image
+      </div>` : '');
+    return `<div style="max-width:1000px;margin:0 auto 1px;padding:3px 12px;background:#F4F4F2;border-radius:8px;text-align:left;font-size:0.95rem;line-height:1.2;">
+      ${item.title ? `<div style="font-weight:bold;font-size:1.1rem;margin-bottom:2px;">${item.title}</div>` : ''}
+      ${visualHtml}
+      ${imageHtml}
+      ${item.enonce ? `<div style="${item.visual ? 'margin-top:4px;' : ''}">${item.enonce}</div>` : ''}
+      ${item.question ? `<div style="font-weight:bold;margin-top:1px;">${item.question}</div>` : ''}
+      ${hintsHtml}
+      ${essaisHtml}
+    </div>`;
+  }
+
+  if(item.type === "famille"){
+    if(showCorrection){
+      const boxes = item.options.map((opt, i) => {
+        const isCorrect = i === item.correct;
+        return `<div style="flex:1;padding:2px 4px;border:2px solid ${isCorrect ? '#2E8B57' : '#ddd'};border-radius:8px;background:${isCorrect ? '#DFF3E1' : 'white'};text-align:center;">
+          <div style="font-size:0.8rem;font-weight:bold;">${opt[0]}</div>
+          ${opt[1] ? `<div style="font-size:0.7rem;color:#555;">${opt[1]}</div>` : ''}
+        </div>`;
+      }).join("");
+      return `<div style="display:flex;gap:5px;max-width:900px;margin:0 auto;">${boxes}</div>`;
+    }
+    const saved = stepState[stepKey(prefix)];
+    const opts = item.options.map((opt, i) => {
+      const isSaved = saved && parseInt(saved.value) === i;
+      const border = isSaved ? '#2E8B57' : '#ccc';
+      const bg = isSaved ? '#DFF3E1' : 'white';
+      return `
+      <label class="famille-opt" style="flex:1;display:block;text-align:center;padding:2px 4px;border:2px solid ${border};border-radius:8px;cursor:pointer;background:${bg};">
+        <input type="radio" name="famille-${prefix}" id="famille-${prefix}-${i}" value="${i}" ${isSaved ? 'checked' : ''} style="display:block;margin:0 auto 4px;">
+        <div style="font-size:0.8rem;font-weight:bold;">${opt[0]}</div>
+        ${opt[1] ? `<div style="font-size:0.7rem;color:#555;">${opt[1]}</div>` : ''}
+      </label>`;
+    }).join("");
+    return `<div style="display:flex;gap:5px;max-width:900px;margin:0 auto;">${opts}</div>`;
+  }
+
+  if(item.type === "schema"){
+    if(showCorrection){
+      const boxes = item.options.map((opt, i) => {
+        const isCorrect = i === item.correct;
+        return `<div style="padding:3px;border:2px solid ${isCorrect ? '#2E8B57' : '#ddd'};border-radius:8px;background:${isCorrect ? '#DFF3E1' : 'white'};">
+          <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">${String.fromCharCode(65+i)}</div>
+          ${schemaSvg(opt)}
+        </div>`;
+      }).join("");
+      return `<div style="display:flex;gap:5px;max-width:1000px;margin:0 auto;">${boxes}</div>`;
+    }
+    const savedSchema = stepState[stepKey(prefix)];
+    const cards = item.options.map((opt, i) => {
+      const isSaved = savedSchema && parseInt(savedSchema.value) === i;
+      return `
+      <button type="button" class="schema-opt${isSaved ? ' selected' : ''}" id="schema-${prefix}-${i}" data-idx="${i}"
+        style="flex:1;text-align:center;padding:3px;border:2px solid ${isSaved ? '#2E8B57' : '#ccc'};border-radius:8px;background:${isSaved ? '#DFF3E1' : 'white'};cursor:pointer;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">${String.fromCharCode(65+i)}</div>
+        ${schemaSvg(opt)}
+      </button>`;
+    }).join("");
+    return `<div style="display:flex;gap:5px;max-width:1000px;margin:0 auto;">${cards}</div>`;
+  }
+
+  if(item.type === "equation"){
+    if(showCorrection){
+      return `<div style="font-size:1.25rem;font-weight:bold;color:#2E8B57;">${item.expected}</div>`;
+    }
+    const savedEq = stepState[stepKey(prefix)];
+    return `<div style="font-size:1.2rem;">
+      <input type="text" id="equation-${prefix}" class="line-input${savedEq ? ' correct' : ''}" placeholder="ex : 3 + 4 = 7" value="${savedEq ? savedEq.value : ''}" style="font-size:1.2rem;width:220px;text-align:center;">
+    </div>`;
+  }
+
+  if(item.type === "reponse"){
+    // `question` : optionnel -- une question autonome affichee au-dessus du
+    // champ (utilise sur Noire, ou une carte "lecture de donnees" porte 3
+    // items reponse independants, chacun avec sa propre question, plutot que
+    // la question unique partagee de l'item "enonce").
+    const questionHtml = item.question ? `<div style="margin-bottom:2px;">${item.question}</div>` : '';
+    if(showCorrection){
+      return `<div style="font-size:1.1rem;">
+        ${questionHtml}
+        ${item.fixedPrefix} <span style="font-weight:bold;color:#2E8B57;">${item.expectedBlank}</span>${item.fixedSuffix}
+      </div>`;
+    }
+    const savedRep = stepState[stepKey(prefix)];
+    return `<div style="font-size:1.1rem;">
+      ${questionHtml}
+      ${item.fixedPrefix}
+      <input type="text" id="reponse-${prefix}" class="line-input${savedRep ? ' correct' : ''}" value="${savedRep ? savedRep.value : ''}" style="font-size:1.1rem;width:190px;text-align:center;">
+      ${item.fixedSuffix}
+    </div>`;
+  }
+  return "";
+}
+
+function renderCard(items, showCorrection){
+  let stepIdx = -1;
+  const parts = items.map((item) => {
+    if(item.type === "enonce"){
+      return renderOneItem(item, showCorrection, -1);
+    }
+    stepIdx++;
+    const i = stepIdx;
+    // item.label : override explicite (utilise pour les cartes a 2 equations,
+    // ex. Jaune carte 20 -- "Calcul (etape 1)" / "Calcul (etape 2)").
+    const label = item.label || STEP_LABELS[item.type] || `Étape ${i+1}`;
+    return `<div class="step-block" style="margin-bottom:2px;">
+      <div class="item-label" id="item-label-${i}" style="display:inline-block;font-size:0.85rem;font-weight:bold;color:#999;border:2px solid #ccc;border-radius:14px;padding:0px 12px;margin-bottom:0px;">${label}</div>
+      <div>${renderOneItem(item, showCorrection, i)}</div>
+    </div>`;
+  });
+  return '<div style="text-align:center;">' + parts.join('') + '</div>';
+}
+
+function checkOneItem(item, prefix){
+  if(item.type === "enonce") return true; // jamais noté, ne bloque pas "tout juste"
+
+  if(item.type === "famille"){
+    const chosen = document.querySelector(`input[name="famille-${prefix}"]:checked`);
+    document.querySelectorAll(`.famille-opt`).forEach(el => { el.style.borderColor = '#ccc'; el.style.background = 'white'; });
+    if(!chosen){ delete stepState[stepKey(prefix)]; return false; }
+    const label = chosen.closest('label');
+    const ok = parseInt(chosen.value) === item.correct;
+    label.style.borderColor = ok ? '#2E8B57' : '#C0392B';
+    label.style.background = ok ? '#DFF3E1' : '#FBE0DE';
+    if(ok) stepState[stepKey(prefix)] = { value: chosen.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "schema"){
+    const btns = document.querySelectorAll(`[id^="schema-${prefix}-"]`);
+    let chosenIdx = null;
+    btns.forEach(b => { if(b.classList.contains('selected')) chosenIdx = parseInt(b.dataset.idx); });
+    btns.forEach(b => { b.style.borderColor = '#ccc'; b.style.background = 'white'; });
+    if(chosenIdx === null){ delete stepState[stepKey(prefix)]; return false; }
+    const ok = chosenIdx === item.correct;
+    const chosenBtn = document.getElementById(`schema-${prefix}-${chosenIdx}`);
+    chosenBtn.style.borderColor = ok ? '#2E8B57' : '#C0392B';
+    chosenBtn.style.background = ok ? '#DFF3E1' : '#FBE0DE';
+    if(ok) stepState[stepKey(prefix)] = { value: String(chosenIdx) }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "equation"){
+    const input = document.getElementById(`equation-${prefix}`);
+    if(!input) return false;
+    const ok = eqMatches(input.value, item.expected);
+    input.classList.remove('correct','incorrect');
+    input.classList.add(ok ? 'correct' : 'incorrect');
+    if(ok) stepState[stepKey(prefix)] = { value: input.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "reponse"){
+    const input = document.getElementById(`reponse-${prefix}`);
+    if(!input) return false;
+    // Le champ n'attend normalement que le blanc (ex. "8 gateaux"), mais un
+    // eleve qui recopie la phrase entiere du corrige (prefixe + blanc +
+    // suffixe, ex. "La difference est 8 gateaux.") tape une reponse tout
+    // aussi juste -- on accepte les deux formes plutot que de la rejeter.
+    const fullSentence = `${item.fixedPrefix} ${item.expectedBlank}${item.fixedSuffix}`;
+    const typed = normText(input.value);
+    const ok = typed === normText(item.expectedBlank) || typed === normText(fullSentence);
+    input.classList.remove('correct','incorrect');
+    input.classList.add(ok ? 'correct' : 'incorrect');
+    if(ok) stepState[stepKey(prefix)] = { value: input.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  return false;
+}
+
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.schema-opt');
+  if(!btn) return;
+  const prefix = btn.id.split('-')[1];
+  document.querySelectorAll(`[id^="schema-${prefix}-"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  btn.style.borderColor = '#555';
+});
+
+// Empêche les raccourcis clavier globaux du moteur (espace = correction,
+// flèches = changer de carte) de capturer les touches quand on tape dans un
+// champ de saisie -- sans toucher au moteur générique lui-même : on
+// intercepte en phase de capture, AVANT que son écouteur (phase de bulles)
+// ne reçoive l'événement.
+document.addEventListener('keydown', function(e){
+  const tag = e.target.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA'){
+    if(e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+      e.stopPropagation();
+    }
+  }
+}, true); // true = phase de capture
+
+function checkCard(items){
+  const results = [];
+  let stepIdx = -1;
+  items.forEach((item) => {
+    if(item.type === "enonce") return; // pas d'étape notée, pas d'entrée dans results
+    stepIdx++;
+    results.push(checkOneItem(item, stepIdx));
+  });
+  return results;
+}
+
+
+// ============================================================
+// Moteur generique (ceci ne change pas d'une discipline a l'autre)
+// ============================================================
+const CARDS = [{"recto": "Carte 1/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans mon porte-monnaie, j'ai une pièce de 1 euro et une pièce de 2 euros.", "question": "Quelle somme d'argent ai-je en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Transformation", ""], ["Parties-tout", "recherche du tout"]], "correct": 2}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "?", "delta": "+1", "apres": "3"}, {"kind": "partiestout", "tout": "3", "parts": ["?", "2"]}, {"kind": "transformation", "avant": "1", "delta": "+2", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["1", "2"]}]}, {"type": "equation", "expected": "1 + 2 = 3"}, {"type": "reponse", "fixedPrefix": "J'ai", "fixedSuffix": ".", "expectedBlank": "3 euros en tout"}]}, {"recto": "Carte 2/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Pour la salade de fruits, je mélange 6 oranges et 4 poires.", "question": "Combien de fruits y a-t-il en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"], ["Transformation", ""]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "?", "delta": "+6", "apres": "10"}, {"kind": "transformation", "avant": "6", "delta": "+4", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["6", "4"]}, {"kind": "partiestout", "tout": "10", "parts": ["?", "4"]}]}, {"type": "equation", "expected": "6 + 4 = 10"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "10 fruits en tout"}]}, {"recto": "Carte 3/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Pendant ma promenade j'ai vu 5 écureuils et 8 escargots.", "question": "Combien ai-je observé d'animaux en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "?", "parts": ["8", "5"]}, {"kind": "transformation", "avant": "?", "delta": "+8", "apres": "13"}, {"kind": "transformation", "avant": "8", "delta": "+5", "apres": "?"}, {"kind": "partiestout", "tout": "13", "parts": ["?", "5"]}]}, {"type": "equation", "expected": "8 + 5 = 13"}, {"type": "reponse", "fixedPrefix": "J'ai observé", "fixedSuffix": ".", "expectedBlank": "13 animaux en tout"}]}, {"recto": "Carte 4/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Maman coupe le gâteau au chocolat en 6 parts et celui aux fruits en 8 parts.", "question": "Combien de parts y a-t-il en tout ?"}, {"type": "famille", "options": [["Transformation", ""], ["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "6", "delta": "+8", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+6", "apres": "14"}, {"kind": "partiestout", "tout": "?", "parts": ["6", "8"]}, {"kind": "partiestout", "tout": "14", "parts": ["?", "8"]}]}, {"type": "equation", "expected": "6 + 8 = 14"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "14 parts en tout"}]}, {"recto": "Carte 5/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Sur le parking de l'école il y a 5 voitures rouges et 9 voitures jaunes.", "question": "Combien y a-t-il de voitures en tout sur le parking ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "?", "parts": ["5", "9"]}, {"kind": "partiestout", "tout": "14", "parts": ["?", "9"]}, {"kind": "transformation", "avant": "5", "delta": "+9", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+5", "apres": "14"}]}, {"type": "equation", "expected": "5 + 9 = 14"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "14 voitures en tout"}]}, {"recto": "Carte 6/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Sur une étagère il y a 7 livres de poche et 8 grands livres.", "question": "Combien y a-t-il de livres en tout ?"}, {"type": "famille", "options": [["Transformation", ""], ["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "7", "delta": "+8", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["7", "8"]}, {"kind": "transformation", "avant": "?", "delta": "+7", "apres": "15"}, {"kind": "partiestout", "tout": "15", "parts": ["?", "8"]}]}, {"type": "equation", "expected": "7 + 8 = 15"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "15 livres en tout"}]}, {"recto": "Carte 7/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Sur le tableau de la classe il y a 10 aimants blancs et 5 aimants noirs.", "question": "Combien y a-t-il d'aimants sur le tableau en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Transformation", ""], ["Parties-tout", "recherche du tout"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "15", "parts": ["?", "10"]}, {"kind": "partiestout", "tout": "?", "parts": ["5", "10"]}, {"kind": "transformation", "avant": "?", "delta": "+5", "apres": "15"}, {"kind": "transformation", "avant": "5", "delta": "+10", "apres": "?"}]}, {"type": "equation", "expected": "5 + 10 = 15"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "15 aimants en tout sur le tableau"}]}, {"recto": "Carte 8/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Il y a 6 ballons dans la cour et 10 ballons sous le préau.", "question": "Combien de ballons y a-t-il au total ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"], ["Transformation", ""]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "16", "parts": ["?", "10"]}, {"kind": "transformation", "avant": "?", "delta": "+6", "apres": "16"}, {"kind": "partiestout", "tout": "?", "parts": ["6", "10"]}, {"kind": "transformation", "avant": "6", "delta": "+10", "apres": "?"}]}, {"type": "equation", "expected": "6 + 10 = 16"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "16 ballons au total"}]}, {"recto": "Carte 9/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans la forêt, Lulu a ramassé 9 châtaignes et 8 marrons.", "question": "Combien Lulu a-t-elle ramassé de fruits en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Transformation", ""], ["Parties-tout", "recherche du tout"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "9", "delta": "+8", "apres": "?"}, {"kind": "partiestout", "tout": "17", "parts": ["?", "8"]}, {"kind": "partiestout", "tout": "?", "parts": ["9", "8"]}, {"kind": "transformation", "avant": "?", "delta": "+9", "apres": "17"}]}, {"type": "equation", "expected": "9 + 8 = 17"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "17 fruits en tout"}]}, {"recto": "Carte 10/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans un vase il y a 12 roses et 7 tulipes.", "question": "Combien y a-t-il de fleurs en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"], ["Transformation", ""]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "?", "delta": "+12", "apres": "19"}, {"kind": "transformation", "avant": "12", "delta": "+7", "apres": "?"}, {"kind": "partiestout", "tout": "19", "parts": ["?", "7"]}, {"kind": "partiestout", "tout": "?", "parts": ["12", "7"]}]}, {"type": "equation", "expected": "12 + 7 = 19"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "19 fleurs en tout"}]}, {"recto": "Carte 11/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Lina a 7 images de footballeurs. Timéo en a 13.", "question": "Combien d'images ont-ils ensemble ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "7", "delta": "+13", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+7", "apres": "20"}, {"kind": "partiestout", "tout": "20", "parts": ["?", "13"]}, {"kind": "partiestout", "tout": "?", "parts": ["7", "13"]}]}, {"type": "equation", "expected": "7 + 13 = 20"}, {"type": "reponse", "fixedPrefix": "Ils ont", "fixedSuffix": ".", "expectedBlank": "20 images ensemble"}]}, {"recto": "Carte 12/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Boris a acheté 8 euros de bonbons et 12 euros de chocolats.", "question": "Combien Boris a-t-il dépensé en tout ?"}, {"type": "famille", "options": [["Transformation", ""], ["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "8", "delta": "+12", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["8", "12"]}, {"kind": "transformation", "avant": "?", "delta": "+8", "apres": "20"}, {"kind": "partiestout", "tout": "20", "parts": ["?", "12"]}]}, {"type": "equation", "expected": "8 + 12 = 20"}, {"type": "reponse", "fixedPrefix": "Boris a dépensé", "fixedSuffix": ".", "expectedBlank": "20 euros en tout"}]}, {"recto": "Carte 13/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans la classe il y a 12 filles et 9 garçons.", "question": "Quel est le nombre d'élèves ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+12", "apres": "21"}, {"kind": "partiestout", "tout": "?", "parts": ["12", "9"]}, {"kind": "transformation", "avant": "12", "delta": "+9", "apres": "?"}, {"kind": "partiestout", "tout": "21", "parts": ["?", "9"]}]}, {"type": "equation", "expected": "12 + 9 = 21"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "21 élèves dans la classe"}]}, {"recto": "Carte 14/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans mon cahier, j'ai collé 10 gommettes rouges et 14 gommettes jaunes.", "question": "Combien y a-t-il de gommettes en tout dans mon cahier ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"], ["Transformation", ""]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "10", "delta": "+14", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["10", "14"]}, {"kind": "transformation", "avant": "?", "delta": "+10", "apres": "24"}, {"kind": "partiestout", "tout": "24", "parts": ["?", "14"]}]}, {"type": "equation", "expected": "10 + 14 = 24"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "24 gommettes en tout"}]}, {"recto": "Carte 15/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Le marchand a vendu 12 glaces vanille et 14 glaces chocolat.", "question": "Combien de glaces a-t-il vendues ?"}, {"type": "famille", "options": [["Transformation", ""], ["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "?", "parts": ["12", "14"]}, {"kind": "partiestout", "tout": "26", "parts": ["?", "14"]}, {"kind": "transformation", "avant": "12", "delta": "+14", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+12", "apres": "26"}]}, {"type": "equation", "expected": "12 + 14 = 26"}, {"type": "reponse", "fixedPrefix": "Il a vendu", "fixedSuffix": ".", "expectedBlank": "26 glaces"}]}, {"recto": "Carte 16/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans la trousse d'Eva, il y a 5 feutres, 4 crayons et 6 pinceaux.", "question": "Combien d'objets y a-t-il dans la trousse d'Eva ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "15", "parts": ["?", "4", "6"]}, {"kind": "partiestout", "tout": "?", "parts": ["5", "4", "6"]}, {"kind": "transformation", "avant": "?", "delta": "+5", "apres": "15"}, {"kind": "transformation", "avant": "5", "delta": "+4", "apres": "?"}]}, {"type": "equation", "expected": "5 + 4 + 6 = 15"}, {"type": "reponse", "fixedPrefix": "Eva a", "fixedSuffix": ".", "expectedBlank": "15 objets dans sa trousse"}]}, {"recto": "Carte 17/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Myriam a acheté des décorations pour son anniversaire. Elle a 4 guirlandes, 7 ballons rouges et 5 ballons dorés.", "question": "Combien y a-t-il de décorations en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "4", "delta": "+7", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+4", "apres": "16"}, {"kind": "partiestout", "tout": "?", "parts": ["4", "7", "5"]}, {"kind": "partiestout", "tout": "16", "parts": ["?", "7", "5"]}]}, {"type": "equation", "expected": "4 + 7 + 5 = 16"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "16 décorations en tout"}]}, {"recto": "Carte 18/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans ma boîte, j'ai 5 cubes jaunes, 10 cubes bleus et 5 cubes verts.", "question": "Combien de cubes y a-t-il en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Transformation", ""], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "20", "parts": ["?", "10", "5"]}, {"kind": "transformation", "avant": "?", "delta": "+5", "apres": "20"}, {"kind": "transformation", "avant": "5", "delta": "+10", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["5", "10", "5"]}]}, {"type": "equation", "expected": "5 + 10 + 5 = 20"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "20 cubes en tout"}]}, {"recto": "Carte 19/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Lila fait une compote. Elle utilise 9 pommes, 8 poires et 5 bananes.", "question": "Combien de fruits y a-t-il dans cette compote ?"}, {"type": "famille", "options": [["Transformation", ""], ["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "?", "delta": "+8", "apres": "22"}, {"kind": "transformation", "avant": "8", "delta": "+9", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["8", "9", "5"]}, {"kind": "partiestout", "tout": "22", "parts": ["?", "9", "5"]}]}, {"type": "equation", "expected": "8 + 9 + 5 = 22"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "22 fruits dans la compote"}]}, {"recto": "Carte 20/20", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Max a 10 images de dinosaures, 8 images de footballeuses et 12 images d'animaux.", "question": "Combien d'images Max a-t-il en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Transformation", ""], ["Parties-tout", "recherche du tout"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "10", "delta": "+8", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["10", "8", "12"]}, {"kind": "partiestout", "tout": "30", "parts": ["?", "8", "12"]}, {"kind": "transformation", "avant": "?", "delta": "+10", "apres": "30"}]}, {"type": "equation", "expected": "10 + 8 + 12 = 30"}, {"type": "reponse", "fixedPrefix": "Max a", "fixedSuffix": ".", "expectedBlank": "30 images en tout"}]}];
+const ITEM_LABEL = "ÉTAPE";
+const PAGE_TITLE = "Ceinture BLANCHE";
+const TEACHER_EMAIL = "euryale_tsipora@protonmail.me";
+const TEACHER_PIN = "0616";
+const EMAIL_ENABLED = false; // desactive temporairement l'ouverture de la messagerie en fin de seance ; le PDF continue d'etre genere et telecharge normalement
+const SESSION_STORAGE_KEY = 'calcpose_sessionLog';
+const NAME_STORAGE_KEY = 'calcpose_studentName';
+let cardIdx = 0;
+let showingCorrection = false;
+let teacherMode = false;
+let hasAttemptedCurrent = false;
+
+// La seance est memorisee dans le navigateur (localStorage) pour survivre a un
+// changement de page (une ceinture = un fichier different) : sans ca, tout ce
+// qui a ete fait sur une ceinture visitee avant celle-ci serait perdu au moment
+// du PDF final. Repli silencieux sur une seance vide si localStorage est
+// indisponible (navigation privee, restrictions navigateur...).
+function chargerSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+function sauverSession(){
+  try { localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionLog)); } catch(e) {}
+}
+function chargerNomEleve(){
+  const injecte = "";
+  if(injecte) return injecte; // fiche personnalisee : le nom est deja connu, prioritaire
+  try { return localStorage.getItem(NAME_STORAGE_KEY) || ""; } catch(e) { return ""; }
+}
+function sauverNomEleve(){
+  try { localStorage.setItem(NAME_STORAGE_KEY, studentName); } catch(e) {}
+}
+function viderSession(){
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); localStorage.removeItem(NAME_STORAGE_KEY); } catch(e) {}
+  sessionLog = [];
+}
+
+let sessionLog = chargerSession(); // {belt, carte, ok, results}
+let studentName = chargerNomEleve();
+
+function updateSessionScore(){
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  document.getElementById('session-score').textContent = `Séance : ${ok}/${total}`;
+}
+
+function render(){
+  showingCorrection = false;
+  hasAttemptedCurrent = false;
+  updateCalcArea();
+  document.getElementById('progress-btn').textContent = `Carte ${cardIdx+1} / ${CARDS.length}`;
+}
+
+function updateCalcArea(){
+  const card = CARDS[cardIdx];
+  const beltTag = card.belt_name
+    ? `<span class="belt-origin-tag" style="background:${card.belt_color};">${card.belt_name}</span>`
+    : '';
+  document.getElementById('carte-indicator').innerHTML =
+    `CARTE ${cardIdx+1}` + beltTag + (card.rappel ? '<span class="rappel-tag">(rappel)</span>' : '');
+  document.getElementById('palier-label').innerHTML = showingCorrection ? card.verso : card.recto;
+  document.getElementById('calc-area').innerHTML = renderCard(card.items, showingCorrection);
+  document.getElementById('feedback-msg').textContent = '';
+  document.getElementById('feedback-msg').className = '';
+  document.getElementById('btn-verifier').style.display = showingCorrection ? 'none' : '';
+  refreshCorrectionButton();
+}
+
+function refreshCorrectionButton(){
+  const btnCorrection = document.getElementById('btn-correction');
+  const locked = !teacherMode && !hasAttemptedCurrent && !showingCorrection;
+  btnCorrection.disabled = locked;
+  btnCorrection.title = locked ? "Vérifie d'abord ta réponse pour débloquer la correction" : "";
+  btnCorrection.textContent = locked
+    ? '🔒 Vérifie ta réponse d\'abord'
+    : (showingCorrection ? 'Retour à l\'énoncé (espace)' : 'Voir la correction (espace)');
+}
+
+function verifierReponse(){
+  const card = CARDS[cardIdx];
+  if(typeof checkCard === 'function'){
+    const results = checkCard(card.items); // tableau de booleens, un par calcul de la carte
+    const allOk = results.every(r => r);
+    const msg = document.getElementById('feedback-msg');
+    if(allOk){
+      msg.textContent = 'Bravo, tout est juste !';
+    } else if(results.some(r => r)){
+      const nOk = results.filter(r => r).length;
+      msg.textContent = `${nOk} sur ${results.length} sont justes — corrige et réessaie.`;
+    } else {
+      msg.textContent = 'Pas encore juste — corrige et réessaie.';
+    }
+    msg.className = allOk ? 'ok' : 'ko';
+    results.forEach((ok, i) => {
+      const label = document.getElementById(`item-label-${i}`);
+      if(label){
+        label.classList.remove('correct', 'incorrect');
+        label.classList.add(ok ? 'correct' : 'incorrect');
+      }
+    });
+    hasAttemptedCurrent = true;
+    const beltLabel = card.belt_name || PAGE_TITLE;
+    sessionLog.push({belt: beltLabel, carte: cardIdx+1, ok: allOk, results: results});
+    sauverSession();
+    updateSessionScore();
+    refreshCorrectionButton();
+  }
+}
+
+function toggleTeacherMode(){
+  if(teacherMode){
+    teacherMode = false;
+    document.getElementById('btn-mode').textContent = '👤 Élève';
+    document.getElementById('btn-mode').classList.remove('teacher');
+  } else {
+    const code = prompt("Code enseignant :");
+    if(code === null) return;
+    if(code === TEACHER_PIN){
+      teacherMode = true;
+      document.getElementById('btn-mode').textContent = '🔓 Enseignant';
+      document.getElementById('btn-mode').classList.add('teacher');
+    } else {
+      alert("Code incorrect.");
+      return;
+    }
+  }
+  refreshCorrectionButton();
+}
+
+const LETTRES = ['A','B','C','D','E','F'];
+
+function terminerSeance(){
+  if(sessionLog.length === 0){
+    alert("Aucune vérification n'a encore été faite pendant cette séance.");
+    return;
+  }
+  if(!studentName){
+    const saisie = prompt("Quel est ton prénom ?");
+    if(!saisie){ alert("Le prénom est nécessaire pour enregistrer la séance."); return; }
+    studentName = saisie.trim();
+    sauverNomEleve();
+  }
+
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  const dateStr = new Date().toLocaleDateString('fr-FR');
+  const heureStr = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  const titreComplet = `${studentName} — ${dateStr}`;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`Séance de calcul posé — ${titreComplet}`, 14, 18);
+  doc.setFontSize(11);
+  doc.text(`Date : ${dateStr} à ${heureStr}`, 14, 28);
+  doc.text(`Score de la séance : ${ok} / ${total}`, 14, 36);
+  doc.text("Détail (toutes ceintures travaillées pendant la séance) :", 14, 46);
+  let y = 54;
+  sessionLog.forEach((e, i) => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    const detail = e.results
+      ? e.results.map((r, k) => `${LETTRES[k] || (k+1)}:${r ? 'juste' : 'à revoir'}`).join('  ')
+      : (e.ok ? 'juste' : 'à revoir');
+    doc.text(`${i+1}. ${e.belt} — Carte ${e.carte} — ${detail}`, 18, y);
+    y += 7;
+  });
+
+  const slug = studentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,'_');
+  const fname = `seance_${slug}_${dateStr.replace(/\//g,'-')}.pdf`;
+  doc.save(fname);
+
+  if(EMAIL_ENABLED){
+    const sujet = encodeURIComponent(`Séance calcul posé — ${titreComplet}`);
+    const corps = encodeURIComponent(
+      `Bonjour,\n\nVoici le résumé de séance de ${studentName} du ${dateStr} à ${heureStr}.\n` +
+      `Score : ${ok}/${total}.\n\nLe fichier "${fname}" vient d'être téléchargé — merci de le joindre à cet e-mail avant de l'envoyer.\n`
+    );
+    const mailto = `mailto:${TEACHER_EMAIL}?subject=${sujet}&body=${corps}`;
+    window.location.href = mailto;
+  } else {
+    alert(`Séance enregistrée ! Le fichier "${fname}" vient d'être téléchargé — tu peux le transmettre à l'enseignant(e) si tu le souhaites.`);
+  }
+
+  viderSession();
+  studentName = "";
+  updateSessionScore();
+}
+
+function toggleCorrection(){
+  if(!teacherMode && !hasAttemptedCurrent && !showingCorrection) return; // verrouille tant que non tente
+  showingCorrection = !showingCorrection;
+  updateCalcArea();
+}
+function go(delta){
+  cardIdx = (cardIdx + delta + CARDS.length) % CARDS.length;
+  render();
+}
+function goTo(n){
+  cardIdx = Math.max(0, Math.min(CARDS.length-1, n-1));
+  render();
+  closePicker();
+}
+
+function openPicker(){
+  const grid = document.getElementById('picker-grid');
+  grid.innerHTML = '';
+  CARDS.forEach((card, i) => {
+    const b = document.createElement('button');
+    b.textContent = i+1;
+    if(i === cardIdx) b.classList.add('current');
+    b.onclick = () => goTo(i+1);
+    grid.appendChild(b);
+  });
+  document.getElementById('overlay').classList.add('show');
+}
+function closePicker(){ document.getElementById('overlay').classList.remove('show'); }
+
+document.getElementById('progress-btn').onclick = openPicker;
+document.getElementById('picker-close').onclick = closePicker;
+document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closePicker(); };
+document.getElementById('picker-go').onclick = ()=>{
+  const v = parseInt(document.getElementById('picker-input').value);
+  if(v) goTo(v);
+};
+document.getElementById('prev').onclick = ()=>go(-1);
+document.getElementById('next').onclick = ()=>go(1);
+document.getElementById('btn-correction').onclick = toggleCorrection;
+document.getElementById('btn-verifier').onclick = verifierReponse;
+document.getElementById('btn-fin-seance').onclick = terminerSeance;
+document.getElementById('btn-mode').onclick = toggleTeacherMode;
+document.addEventListener('keydown', (e)=>{
+  if(document.getElementById('overlay').classList.contains('show')) return;
+  if(e.key === 'ArrowRight') go(1);
+  else if(e.key === 'ArrowLeft') go(-1);
+  else if(e.key === ' '){ e.preventDefault(); toggleCorrection(); }
+});
+
+render();
+updateSessionScore();
+</script>
+</body>
+</html>

@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Ceinture VERTE</title>
+<style>
+  :root {
+    --belt-color: #4C9A4C;
+    --belt-color-pale: color-mix(in srgb, var(--belt-color) 16%, white);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    background: #f4f4f4; height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--belt-color-pale); padding: 14px 24px; display: flex;
+    align-items: center; justify-content: space-between; border-bottom: 3px solid var(--belt-color);
+  }
+  header h1 { margin: 0; font-size: 1.8rem; color: #1a1a1a; }
+  header a.home { text-decoration: none; color: #555; font-size: 1.3rem; margin-right: 14px; }
+  #progress-btn {
+    font-size: 1.5rem; font-weight: bold; background: white; border: 2px solid #1a1a1a;
+    border-radius: 24px; padding: 8px 22px; cursor: pointer;
+  }
+  #progress-btn:hover { background: #eee; }
+  #session-score { font-size: 1.1rem; font-weight: bold; color: #333; }
+  #btn-fin-seance {
+    font-size: 1rem; font-weight: bold; background: #2F3B52; color: white; border: none;
+    border-radius: 20px; padding: 8px 18px; cursor: pointer;
+  }
+  #btn-fin-seance:hover { filter: brightness(1.2); }
+  #btn-mode {
+    font-size: 1rem; font-weight: bold; background: white; color: #333;
+    border: 2px solid #999; border-radius: 20px; padding: 7px 16px; cursor: pointer;
+  }
+  #btn-mode.teacher { background: #2E8B57; color: white; border-color: #2E8B57; }
+  #btn-correction:disabled {
+    background: #ccc; color: #777; cursor: not-allowed; filter: none;
+  }
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center; position: relative;
+  }
+  #carte-indicator {
+    font-size: 2.2rem; font-weight: 900; color: var(--belt-color);
+    background: var(--belt-color-pale); border: 3px solid var(--belt-color);
+    border-radius: 14px; padding: 14px 36px; margin-bottom: 40px; letter-spacing: 0.03em;
+  }
+  #palier-label { font-size: 1.5rem; color: var(--belt-color); font-weight: bold; margin-bottom: 44px; text-transform: uppercase; }
+  #calc-area { font-size: 4rem; font-weight: bold; color: #1a1a1a; margin-bottom: 56px; }
+  .rappel-tag { font-size: 1.4rem; color: #0B5FA5; font-style: italic; display: block; margin-top: 14px; }
+  .belt-origin-tag {
+    display: inline-block; font-size: 0.9rem; font-weight: bold; color: white;
+    border-radius: 20px; padding: 3px 14px; margin-left: 14px; vertical-align: middle;
+    text-transform: none;
+  }
+
+  #btn-correction {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: var(--belt-color); color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-correction:hover { filter: brightness(0.92); }
+  #btn-verifier {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: #2E8B57; color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-verifier:hover { filter: brightness(0.92); }
+  #feedback-msg {
+    font-size: 1.4rem; font-weight: bold; min-height: 2.2rem; margin-bottom: 8px;
+  }
+  #feedback-msg.ok { color: #2E8B57; }
+  #feedback-msg.ko { color: #C0392B; }
+  input.digit-input, input.line-input {
+    font-family: inherit; font-weight: bold; text-align: center; border-radius: 6px;
+    border: 2px solid #999;
+  }
+  input.digit-input.correct, input.line-input.correct, input.carry-input.correct, input.cassage-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  input.digit-input.incorrect, input.line-input.incorrect, input.carry-input.incorrect, input.cassage-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+
+  nav.arrows { display: flex; justify-content: space-between; align-items: center; padding: 14px 30px; }
+  nav.arrows button {
+    width: 60px; height: 60px; border-radius: 50%; border: 2px solid #1a1a1a; background: white;
+    font-size: 1.8rem; cursor: pointer;
+  }
+  nav.arrows button:hover { background: #eee; }
+  nav.arrows span { font-size: 1.15rem; color: #555; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10; }
+  #overlay.show { display: flex; }
+  #picker { background: white; border-radius: 12px; padding: 28px 32px; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+  #picker h2 { margin: 0 0 18px 0; font-size: 1.5rem; color: var(--belt-color); font-weight: bold; }
+  #picker-jump { display: flex; gap: 10px; margin-bottom: 20px; }
+  #picker-input { flex: 1; min-width: 260px; padding: 10px 14px; font-size: 1rem; border: 2px solid var(--belt-color); border-radius: 8px; }
+  #picker-go { padding: 10px 22px; font-size: 1rem; font-weight: bold; cursor: pointer; background: var(--belt-color); color: white; border: none; border-radius: 8px; }
+  #picker-go:hover { filter: brightness(0.92); }
+  #picker-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 22px; }
+  #picker-grid button { padding: 10px 0; border: 2px solid var(--belt-color); border-radius: 10px; background: white; color: var(--belt-color); font-weight: bold; font-size: 1rem; cursor: pointer; }
+  #picker-grid button:hover { background: var(--belt-color-pale); }
+  #picker-grid button.current { background: var(--belt-color); color: white; }
+  #picker-close { background: #8a8a8a; color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 1rem; cursor: pointer; }
+  #picker-close:hover { background: #767676; }
+  
+  header { padding: 6px 24px !important; }
+  #btn-correction { padding: 7px 28px !important; }
+  #btn-verifier { padding: 7px 28px !important; }
+  nav.arrows { padding: 6px 30px !important; }
+  #carte-indicator { margin-bottom: 1px !important; padding: 2px 20px !important; }
+  #palier-label { margin-bottom: 1px !important; font-size: 1.1rem !important; }
+  #calc-area { margin-bottom: 2px !important; }
+  main { padding: 2px 20px !important; }
+  #feedback-msg { min-height: 0.9rem !important; margin-bottom: 0px !important; }
+  .step-block input.line-input { border-radius: 6px; border: 2px solid #999; padding: 2px 8px; }
+  .step-block input.line-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  .step-block input.line-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+  .schema-opt.selected { border-color: #555 !important; }
+  .item-label.correct { color: #2E8B57; border-color: #2E8B57 !important; background: #DFF3E1; }
+  .item-label.incorrect { color: #C0392B; border-color: #C0392B !important; background: #FBE0DE; }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;">
+    <a class="home" href="index.html" title="Retour à l'index">🏠</a>
+    <h1>Ceinture VERTE</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span id="session-score">Séance : 0/0</span>
+    <button id="btn-fin-seance">Terminer la séance</button>
+    <button id="btn-mode" title="Déverrouiller la correction libre">👤 Élève</button>
+    <button id="progress-btn">Carte 1 / 60</button>
+  </div>
+</header>
+<main>
+  <div id="carte-indicator"></div>
+  <div id="palier-label"></div>
+  <div id="calc-area"></div>
+  <div id="feedback-msg"></div>
+  <div style="display:flex; gap:28px; margin-top:8px;">
+    <button id="btn-verifier">Vérifier ma réponse</button>
+    <button id="btn-correction">Voir la correction (espace)</button>
+  </div>
+</main>
+<nav class="arrows">
+  <button id="prev">←</button>
+  <span>Flèches ← → au clavier, ou clique sur le numéro en haut</span>
+  <button id="next">→</button>
+</nav>
+
+<div id="overlay">
+  <div id="picker">
+    <h2>Aller à la carte...</h2>
+    <div id="picker-jump">
+      <input type="number" id="picker-input" min="1" placeholder="N° de carte (1-60)">
+      <button id="picker-go">Aller</button>
+    </div>
+    <div id="picker-grid"></div>
+    <button id="picker-close">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Contenu specifique a la discipline (fourni par l'appelant) :
+// doit definir renderCard(items, showCorrection) -> HTML string, et checkCard(items) -> tableau de booleens
+// ============================================================
+
+const STEP_LABELS = {famille: "Famille", schema: "Schéma", equation: "Calcul", reponse: "Réponse"};
+
+// Mémorise, par carte et par étape, la dernière réponse CORRECTE donnée --
+// pour qu'un retour "Voir la correction" -> "Retour à l'énoncé" ne réinitialise
+// que les étapes encore fausses, pas celles déjà réussies.
+let stepState = {};
+function stepKey(prefix){ return `${cardIdx}-${prefix}`; }
+
+function normEq(s){
+  return s.trim().toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[×x]/g, "x")
+    .replace(/[−-]/g, "-")
+    .replace(/[÷]/g, "/");
+}
+function eqMatches(given, expected){
+  const g = normEq(given), e = normEq(expected);
+  if(g === e) return true;
+  // Commutativité : a+b+...=r (addition) ou a x b x ...=r (multiplication)
+  // acceptée dans n'importe quel ordre des termes -- jamais pour -, / ou un
+  // mélange d'opérateurs, où l'ordre reste significatif.
+  const parseCommutative = (s, opChar) => {
+    const escaped = opChar === "x" ? "x" : "\\" + opChar;
+    const re = new RegExp(`^([\\d${escaped}]+)=(\\d+)$`);
+    const m = s.match(re);
+    if(!m) return null;
+    const terms = m[1].split(opChar).filter(t => t.length);
+    if(terms.length < 2) return null;
+    return { terms: terms.sort(), result: m[2] };
+  };
+  for(const op of ["+", "x"]){
+    const pg = parseCommutative(g, op), pe = parseCommutative(e, op);
+    if(pg && pe && pg.result === pe.result && pg.terms.length === pe.terms.length
+       && pg.terms.every((t, i) => t === pe.terms[i])){
+      return true;
+    }
+  }
+  return false;
+}
+function normText(s){
+  return s.trim().toLowerCase()
+    .replace(/\s+/g, " ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function schemaSvg(opt){
+  if(opt.kind === "partiestout"){
+    // "parts" est une liste (2 ou 3 elements) -- generalisation des cartes a
+    // 3 termes (ex. Blanche cartes 16-20 : 3 parties additionnees).
+    const parts = opt.parts || [opt.p1, opt.p2]; // p1/p2 : retrocompatibilite
+    const n = parts.length;
+    const gap = 6, totalW = 168, boxW = (totalW - gap * (n - 1)) / n;
+    let partsSvg = "";
+    parts.forEach((val, i) => {
+      const x = 6 + i * (boxW + gap);
+      partsSvg += `<rect x="${x}" y="40" width="${boxW}" height="20" rx="4" fill="#E1EFFB" stroke="#85B7EB"/>
+        <text x="${x + boxW/2}" y="50" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${val}</text>`;
+    });
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="6" y="6" width="168" height="20" rx="4" fill="#E1EFFB" stroke="#85B7EB"/>
+      <text x="90" y="16" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.tout}</text>
+      ${partsSvg}
+    </svg>`;
+  }
+  if(opt.kind === "transformation"){
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="4" y="22" width="50" height="24" rx="4" fill="#FAE7DE" stroke="#F0997B"/>
+      <text x="29" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.avant}</text>
+      <text x="29" y="58" text-anchor="middle" font-size="9" fill="#8a5a45">avant</text>
+      <line x1="58" y1="34" x2="118" y2="34" stroke="#8a5a45" stroke-width="1.5" marker-end="url(#arrp)"/>
+      <text x="88" y="24" text-anchor="middle" font-size="9" fill="#8a5a45">${opt.delta}</text>
+      <rect x="124" y="22" width="50" height="24" rx="4" fill="#FAE7DE" stroke="#F0997B"/>
+      <text x="149" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.apres}</text>
+      <text x="149" y="58" text-anchor="middle" font-size="9" fill="#8a5a45">après</text>
+      <defs><marker id="arrp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a5a45" stroke-width="1.5"/></marker></defs>
+    </svg>`;
+  }
+  if(opt.kind === "comparaison"){
+    // Modele en barres : "grand" pleine largeur, "petit" plus courte alignee
+    // a gauche, l'ecart materialise par une accolade sur la portion restante.
+    return `<svg viewBox="0 0 180 78" width="100%" height="64">
+      <text x="6" y="10" font-size="9" fill="#6b4d99">grand</text>
+      <rect x="6" y="14" width="168" height="20" rx="4" fill="#EDE3F7" stroke="#B295D9"/>
+      <text x="90" y="24" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.grand}</text>
+      <text x="6" y="46" font-size="9" fill="#6b4d99">petit</text>
+      <rect x="6" y="50" width="100" height="20" rx="4" fill="#EDE3F7" stroke="#B295D9"/>
+      <text x="56" y="60" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.petit}</text>
+      <line x1="106" y1="50" x2="106" y2="14" stroke="#6b4d99" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="140" y="70" text-anchor="middle" font-size="9" fill="#6b4d99">écart : ${opt.ecart}</text>
+      <line x1="106" y1="76" x2="174" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+      <line x1="106" y1="72" x2="106" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+      <line x1="174" y1="72" x2="174" y2="76" stroke="#6b4d99" stroke-width="1.5"/>
+    </svg>`;
+  }
+  if(opt.kind === "multiplicatif"){
+    // "nb de parts x valeur d'une part = produit", meme registre visuel que
+    // Transformation (3 cases en ligne) mais avec un operateur x.
+    return `<svg viewBox="0 0 180 74" width="100%" height="62">
+      <rect x="2" y="22" width="48" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="26" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.nb_parts}</text>
+      <text x="26" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">nb de parts</text>
+      <text x="56" y="38" text-anchor="middle" font-size="14" fill="#5c7a3f">×</text>
+      <rect x="62" y="22" width="48" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="86" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.valeur_part}</text>
+      <text x="86" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">valeur d'1 part</text>
+      <text x="116" y="38" text-anchor="middle" font-size="14" fill="#5c7a3f">=</text>
+      <rect x="122" y="22" width="52" height="24" rx="4" fill="#E8F0DE" stroke="#8FB768"/>
+      <text x="148" y="36" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="12">${opt.produit}</text>
+      <text x="148" y="58" text-anchor="middle" font-size="8.5" fill="#5c7a3f">produit</text>
+    </svg>`;
+  }
+  return "";
+}
+
+// --- Visuels "lecture de donnees" (Noire) : graphique en barres, tableau a
+// double entree, horloge decorative pour les problemes de duree. Ce sont des
+// visuels d'ENONCE (jamais notes en tant que tels) -- la notation porte sur
+// les 3 items "reponse" independants qui suivent, chacun avec son propre
+// `question` affiche au-dessus de son champ de saisie (cf. renderOneItem
+// "reponse" plus bas).
+const GRAPH_COLORS = ['#8577B7', '#DFAF4C', '#7BA65C', '#6FA8D6', '#C97B95'];
+
+function graphiqueSvg(visual){
+  const labels = visual.labels, values = visual.values;
+  const axisMax = Math.max(...values, 1); // echelle graduee de 1 en 1 jusqu'a la valeur max
+  // Graphique agrandi (davantage de place qu'auparavant) : barres plus
+  // hautes/larges et polices plus grandes pour rester lisible une fois
+  // affiché en grand dans la carte.
+  const chartH = 280, chartW = 560, barGap = 18, marginLeft = 54;
+  const barW = (chartW - barGap * (labels.length - 1)) / labels.length;
+  let ticksSvg = "";
+  for(let v = 0; v <= axisMax; v++){
+    const y = chartH - (v / axisMax) * chartH;
+    ticksSvg += `<line x1="${marginLeft}" y1="${y+14}" x2="${marginLeft+chartW}" y2="${y+14}" stroke="#e2e2e2" stroke-width="1"/>
+      <text x="${marginLeft-6}" y="${y+18}" text-anchor="end" font-size="15" fill="#888">${v}</text>`;
+  }
+  let barsSvg = "";
+  // Volontairement PAS de valeur affichée au-dessus de chaque barre : l'élève
+  // doit lire la hauteur sur l'échelle graduée, pas recopier un chiffre déjà
+  // donné (demande explicite de l'enseignante).
+  labels.forEach((lab, i) => {
+    const v = values[i];
+    const h = (v / axisMax) * chartH;
+    const x = marginLeft + i * (barW + barGap);
+    const y = 14 + (chartH - h);
+    barsSvg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${GRAPH_COLORS[i % GRAPH_COLORS.length]}" rx="3"/>
+      <text x="${x + barW/2}" y="${chartH + 40}" text-anchor="middle" font-size="15" fill="#444">${lab}</text>`;
+  });
+  const vbW = marginLeft + chartW + 10, vbH = chartH + 56;
+  return `<div style="text-align:center;">
+    ${visual.title ? `<div style="font-weight:bold;font-size:1.3rem;margin-bottom:6px;">${visual.title}</div>` : ''}
+    <svg viewBox="0 0 ${vbW} ${vbH}" width="100%" height="${vbH}" style="max-width:720px;">
+      ${ticksSvg}
+      <line x1="${marginLeft}" y1="${chartH+14}" x2="${marginLeft+chartW}" y2="${chartH+14}" stroke="#888" stroke-width="1.5"/>
+      ${barsSvg}
+    </svg>
+  </div>`;
+}
+
+function tableauHtml(visual){
+  const head = `<th style="border:1px solid #ccc;background:#2F3B52;color:white;padding:8px 18px;"></th>` +
+    visual.colLabels.map(c => `<th style="border:1px solid #ccc;background:#2F3B52;color:white;padding:8px 18px;">${c}</th>`).join("");
+  const rows = visual.rowLabels.map((r, i) => {
+    const cells = visual.data[i].map(v => `<td style="border:1px solid #ccc;padding:8px 18px;text-align:center;">${v}</td>`).join("");
+    return `<tr><th style="border:1px solid #ccc;background:#EAEAF0;padding:8px 18px;">${r}</th>${cells}</tr>`;
+  }).join("");
+  return `<div style="text-align:center;">
+    ${visual.title ? `<div style="font-weight:bold;font-size:1.3rem;margin-bottom:8px;">${visual.title}</div>` : ''}
+    <table style="border-collapse:collapse;margin:0 auto;font-size:1.15rem;">
+      <tr>${head}</tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+
+function dureeSvg(){
+  // Horloge decorative (pas d'heure precise a lire) -- rappelle visuellement
+  // qu'il s'agit de problemes de duree, comme sur la fiche papier d'origine.
+  return `<div style="text-align:center;">
+    <svg viewBox="0 0 80 80" width="70" height="70">
+      <circle cx="40" cy="40" r="34" fill="white" stroke="#555" stroke-width="2.5"/>
+      <line x1="40" y1="40" x2="40" y2="18" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="40" y1="40" x2="58" y2="40" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="40" r="2.5" fill="#555"/>
+    </svg>
+  </div>`;
+}
+
+function renderOneItem(item, showCorrection, prefix){
+  if(item.type === "enonce"){
+    let visualHtml = "";
+    if(item.visual){
+      if(item.visual.kind === "graphique") visualHtml = graphiqueSvg(item.visual);
+      else if(item.visual.kind === "tableau") visualHtml = tableauHtml(item.visual);
+      else if(item.visual.kind === "duree") visualHtml = dureeSvg();
+    }
+    // `hints` (Dorée) : conseils de méthode affichés en aide, jamais notés --
+    // équivalent de l'encadré "Conseils" de la fiche papier. `showEssais` :
+    // ajoute une zone de brouillon libre ("Mes essais") sous l'énoncé, pour
+    // que l'élève puisse tâtonner comme sur la carte papier -- non notée,
+    // non sauvegardée, purement un espace de travail.
+    const hintsHtml = item.hints ? `
+      <div style="margin-top:6px;padding:6px 10px;background:#FBF3DC;border:1px solid #E3C878;border-radius:6px;">
+        <div style="font-weight:bold;font-size:0.8rem;color:#8a6d1a;margin-bottom:2px;">Conseils :</div>
+        <ul style="margin:0;padding-left:18px;font-size:0.85rem;color:#6b551a;">
+          ${item.hints.map(h => `<li>${h}</li>`).join("")}
+        </ul>
+      </div>` : '';
+    const essaisHtml = item.showEssais ? `
+      <div style="margin-top:6px;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">Mes essais :</div>
+        <textarea rows="3" style="width:100%;max-width:600px;font-family:inherit;font-size:0.9rem;border:2px solid #ccc;border-radius:6px;padding:4px 8px;" placeholder="Note ici tes essais et ajustements..."></textarea>
+      </div>` : '';
+    // `imageData` : image reelle (jpg du dossier du projet, encodee en base64
+    // au moment de la generation -- voir build_doree_data.py) -- prioritaire
+    // sur `imagePlaceholder`, qui reste le repli tant qu'aucun fichier jpg
+    // n'existe pour la carte (meme espace reserve, meme dimensions, pour que
+    // la mise en page ne bouge pas quand l'image est ajoutee).
+    const imageHtml = item.imageData ? `
+      <div style="margin-top:6px;width:100%;max-width:720px;height:336px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;">
+        <img src="${item.imageData}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;">
+      </div>` : (item.imagePlaceholder ? `
+      <div style="margin-top:6px;width:100%;max-width:720px;height:336px;border:2px dashed #b8b8b0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.85rem;background:#fff;">
+        Espace pour une image
+      </div>` : '');
+    return `<div style="max-width:1000px;margin:0 auto 1px;padding:3px 12px;background:#F4F4F2;border-radius:8px;text-align:left;font-size:0.95rem;line-height:1.2;">
+      ${item.title ? `<div style="font-weight:bold;font-size:1.1rem;margin-bottom:2px;">${item.title}</div>` : ''}
+      ${visualHtml}
+      ${imageHtml}
+      ${item.enonce ? `<div style="${item.visual ? 'margin-top:4px;' : ''}">${item.enonce}</div>` : ''}
+      ${item.question ? `<div style="font-weight:bold;margin-top:1px;">${item.question}</div>` : ''}
+      ${hintsHtml}
+      ${essaisHtml}
+    </div>`;
+  }
+
+  if(item.type === "famille"){
+    if(showCorrection){
+      const boxes = item.options.map((opt, i) => {
+        const isCorrect = i === item.correct;
+        return `<div style="flex:1;padding:2px 4px;border:2px solid ${isCorrect ? '#2E8B57' : '#ddd'};border-radius:8px;background:${isCorrect ? '#DFF3E1' : 'white'};text-align:center;">
+          <div style="font-size:0.8rem;font-weight:bold;">${opt[0]}</div>
+          ${opt[1] ? `<div style="font-size:0.7rem;color:#555;">${opt[1]}</div>` : ''}
+        </div>`;
+      }).join("");
+      return `<div style="display:flex;gap:5px;max-width:900px;margin:0 auto;">${boxes}</div>`;
+    }
+    const saved = stepState[stepKey(prefix)];
+    const opts = item.options.map((opt, i) => {
+      const isSaved = saved && parseInt(saved.value) === i;
+      const border = isSaved ? '#2E8B57' : '#ccc';
+      const bg = isSaved ? '#DFF3E1' : 'white';
+      return `
+      <label class="famille-opt" style="flex:1;display:block;text-align:center;padding:2px 4px;border:2px solid ${border};border-radius:8px;cursor:pointer;background:${bg};">
+        <input type="radio" name="famille-${prefix}" id="famille-${prefix}-${i}" value="${i}" ${isSaved ? 'checked' : ''} style="display:block;margin:0 auto 4px;">
+        <div style="font-size:0.8rem;font-weight:bold;">${opt[0]}</div>
+        ${opt[1] ? `<div style="font-size:0.7rem;color:#555;">${opt[1]}</div>` : ''}
+      </label>`;
+    }).join("");
+    return `<div style="display:flex;gap:5px;max-width:900px;margin:0 auto;">${opts}</div>`;
+  }
+
+  if(item.type === "schema"){
+    if(showCorrection){
+      const boxes = item.options.map((opt, i) => {
+        const isCorrect = i === item.correct;
+        return `<div style="padding:3px;border:2px solid ${isCorrect ? '#2E8B57' : '#ddd'};border-radius:8px;background:${isCorrect ? '#DFF3E1' : 'white'};">
+          <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">${String.fromCharCode(65+i)}</div>
+          ${schemaSvg(opt)}
+        </div>`;
+      }).join("");
+      return `<div style="display:flex;gap:5px;max-width:1000px;margin:0 auto;">${boxes}</div>`;
+    }
+    const savedSchema = stepState[stepKey(prefix)];
+    const cards = item.options.map((opt, i) => {
+      const isSaved = savedSchema && parseInt(savedSchema.value) === i;
+      return `
+      <button type="button" class="schema-opt${isSaved ? ' selected' : ''}" id="schema-${prefix}-${i}" data-idx="${i}"
+        style="flex:1;text-align:center;padding:3px;border:2px solid ${isSaved ? '#2E8B57' : '#ccc'};border-radius:8px;background:${isSaved ? '#DFF3E1' : 'white'};cursor:pointer;">
+        <div style="font-weight:bold;font-size:0.85rem;margin-bottom:2px;">${String.fromCharCode(65+i)}</div>
+        ${schemaSvg(opt)}
+      </button>`;
+    }).join("");
+    return `<div style="display:flex;gap:5px;max-width:1000px;margin:0 auto;">${cards}</div>`;
+  }
+
+  if(item.type === "equation"){
+    if(showCorrection){
+      return `<div style="font-size:1.25rem;font-weight:bold;color:#2E8B57;">${item.expected}</div>`;
+    }
+    const savedEq = stepState[stepKey(prefix)];
+    return `<div style="font-size:1.2rem;">
+      <input type="text" id="equation-${prefix}" class="line-input${savedEq ? ' correct' : ''}" placeholder="ex : 3 + 4 = 7" value="${savedEq ? savedEq.value : ''}" style="font-size:1.2rem;width:220px;text-align:center;">
+    </div>`;
+  }
+
+  if(item.type === "reponse"){
+    // `question` : optionnel -- une question autonome affichee au-dessus du
+    // champ (utilise sur Noire, ou une carte "lecture de donnees" porte 3
+    // items reponse independants, chacun avec sa propre question, plutot que
+    // la question unique partagee de l'item "enonce").
+    const questionHtml = item.question ? `<div style="margin-bottom:2px;">${item.question}</div>` : '';
+    if(showCorrection){
+      return `<div style="font-size:1.1rem;">
+        ${questionHtml}
+        ${item.fixedPrefix} <span style="font-weight:bold;color:#2E8B57;">${item.expectedBlank}</span>${item.fixedSuffix}
+      </div>`;
+    }
+    const savedRep = stepState[stepKey(prefix)];
+    return `<div style="font-size:1.1rem;">
+      ${questionHtml}
+      ${item.fixedPrefix}
+      <input type="text" id="reponse-${prefix}" class="line-input${savedRep ? ' correct' : ''}" value="${savedRep ? savedRep.value : ''}" style="font-size:1.1rem;width:190px;text-align:center;">
+      ${item.fixedSuffix}
+    </div>`;
+  }
+  return "";
+}
+
+function renderCard(items, showCorrection){
+  let stepIdx = -1;
+  const parts = items.map((item) => {
+    if(item.type === "enonce"){
+      return renderOneItem(item, showCorrection, -1);
+    }
+    stepIdx++;
+    const i = stepIdx;
+    // item.label : override explicite (utilise pour les cartes a 2 equations,
+    // ex. Jaune carte 20 -- "Calcul (etape 1)" / "Calcul (etape 2)").
+    const label = item.label || STEP_LABELS[item.type] || `Étape ${i+1}`;
+    return `<div class="step-block" style="margin-bottom:2px;">
+      <div class="item-label" id="item-label-${i}" style="display:inline-block;font-size:0.85rem;font-weight:bold;color:#999;border:2px solid #ccc;border-radius:14px;padding:0px 12px;margin-bottom:0px;">${label}</div>
+      <div>${renderOneItem(item, showCorrection, i)}</div>
+    </div>`;
+  });
+  return '<div style="text-align:center;">' + parts.join('') + '</div>';
+}
+
+function checkOneItem(item, prefix){
+  if(item.type === "enonce") return true; // jamais noté, ne bloque pas "tout juste"
+
+  if(item.type === "famille"){
+    const chosen = document.querySelector(`input[name="famille-${prefix}"]:checked`);
+    document.querySelectorAll(`.famille-opt`).forEach(el => { el.style.borderColor = '#ccc'; el.style.background = 'white'; });
+    if(!chosen){ delete stepState[stepKey(prefix)]; return false; }
+    const label = chosen.closest('label');
+    const ok = parseInt(chosen.value) === item.correct;
+    label.style.borderColor = ok ? '#2E8B57' : '#C0392B';
+    label.style.background = ok ? '#DFF3E1' : '#FBE0DE';
+    if(ok) stepState[stepKey(prefix)] = { value: chosen.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "schema"){
+    const btns = document.querySelectorAll(`[id^="schema-${prefix}-"]`);
+    let chosenIdx = null;
+    btns.forEach(b => { if(b.classList.contains('selected')) chosenIdx = parseInt(b.dataset.idx); });
+    btns.forEach(b => { b.style.borderColor = '#ccc'; b.style.background = 'white'; });
+    if(chosenIdx === null){ delete stepState[stepKey(prefix)]; return false; }
+    const ok = chosenIdx === item.correct;
+    const chosenBtn = document.getElementById(`schema-${prefix}-${chosenIdx}`);
+    chosenBtn.style.borderColor = ok ? '#2E8B57' : '#C0392B';
+    chosenBtn.style.background = ok ? '#DFF3E1' : '#FBE0DE';
+    if(ok) stepState[stepKey(prefix)] = { value: String(chosenIdx) }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "equation"){
+    const input = document.getElementById(`equation-${prefix}`);
+    if(!input) return false;
+    const ok = eqMatches(input.value, item.expected);
+    input.classList.remove('correct','incorrect');
+    input.classList.add(ok ? 'correct' : 'incorrect');
+    if(ok) stepState[stepKey(prefix)] = { value: input.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  if(item.type === "reponse"){
+    const input = document.getElementById(`reponse-${prefix}`);
+    if(!input) return false;
+    // Le champ n'attend normalement que le blanc (ex. "8 gateaux"), mais un
+    // eleve qui recopie la phrase entiere du corrige (prefixe + blanc +
+    // suffixe, ex. "La difference est 8 gateaux.") tape une reponse tout
+    // aussi juste -- on accepte les deux formes plutot que de la rejeter.
+    const fullSentence = `${item.fixedPrefix} ${item.expectedBlank}${item.fixedSuffix}`;
+    const typed = normText(input.value);
+    const ok = typed === normText(item.expectedBlank) || typed === normText(fullSentence);
+    input.classList.remove('correct','incorrect');
+    input.classList.add(ok ? 'correct' : 'incorrect');
+    if(ok) stepState[stepKey(prefix)] = { value: input.value }; else delete stepState[stepKey(prefix)];
+    return ok;
+  }
+  return false;
+}
+
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.schema-opt');
+  if(!btn) return;
+  const prefix = btn.id.split('-')[1];
+  document.querySelectorAll(`[id^="schema-${prefix}-"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  btn.style.borderColor = '#555';
+});
+
+// Empêche les raccourcis clavier globaux du moteur (espace = correction,
+// flèches = changer de carte) de capturer les touches quand on tape dans un
+// champ de saisie -- sans toucher au moteur générique lui-même : on
+// intercepte en phase de capture, AVANT que son écouteur (phase de bulles)
+// ne reçoive l'événement.
+document.addEventListener('keydown', function(e){
+  const tag = e.target.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA'){
+    if(e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+      e.stopPropagation();
+    }
+  }
+}, true); // true = phase de capture
+
+function checkCard(items){
+  const results = [];
+  let stepIdx = -1;
+  items.forEach((item) => {
+    if(item.type === "enonce") return; // pas d'étape notée, pas d'entrée dans results
+    stepIdx++;
+    results.push(checkOneItem(item, stepIdx));
+  });
+  return results;
+}
+
+
+// ============================================================
+// Moteur generique (ceci ne change pas d'une discipline a l'autre)
+// ============================================================
+const CARDS = [{"recto": "Carte 1/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "J'achète une trousse à 3 euros, un crayon à 1 euro et une gomme à 1 euro.", "question": "Combien dois-je payer en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "3", "delta": "+1", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["3", "1", "1"]}, {"kind": "transformation", "avant": "?", "delta": "+3", "apres": "5"}, {"kind": "partiestout", "tout": "5", "parts": ["?", "1", "1"]}]}, {"type": "equation", "expected": "3 + 1 + 1 = 5"}, {"type": "reponse", "fixedPrefix": "Je dois payer", "fixedSuffix": ".", "expectedBlank": "5 euros"}]}, {"recto": "Carte 2/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Lucas pèse 26 kg. Son chien pèse 7 kg.", "question": "Qu'affiche la balance quand Lucas y monte avec son chien ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "33", "parts": ["?", "7"]}, {"kind": "transformation", "avant": "26", "delta": "+7", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["26", "7"]}, {"kind": "transformation", "avant": "?", "delta": "+26", "apres": "33"}]}, {"type": "equation", "expected": "26 + 7 = 33"}, {"type": "reponse", "fixedPrefix": "La balance affiche", "fixedSuffix": ".", "expectedBlank": "33 kg"}]}, {"recto": "Carte 3/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Le boulanger a fabriqué 15 éclairs au chocolat, 35 éclairs au café et 20 éclairs au spéculos.", "question": "Combien d'éclairs le boulanger a-t-il fabriqués en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "?", "delta": "+15", "apres": "70"}, {"kind": "transformation", "avant": "15", "delta": "+35", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["15", "35", "20"]}, {"kind": "partiestout", "tout": "70", "parts": ["?", "35", "20"]}]}, {"type": "equation", "expected": "15 + 35 + 20 = 70"}, {"type": "reponse", "fixedPrefix": "Le boulanger a fabriqué", "fixedSuffix": ".", "expectedBlank": "70 éclairs"}]}, {"recto": "Carte 4/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Pour partir en voyage, Gaston et Lisa possèdent trois valises : 30 kg, 25 kg et 20 kg.", "question": "Quelle est la masse totale des trois valises ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+30", "apres": "75"}, {"kind": "partiestout", "tout": "?", "parts": ["30", "25", "20"]}, {"kind": "partiestout", "tout": "75", "parts": ["?", "25", "20"]}, {"kind": "transformation", "avant": "30", "delta": "+25", "apres": "?"}]}, {"type": "equation", "expected": "30 + 25 + 20 = 75"}, {"type": "reponse", "fixedPrefix": "La masse totale est de", "fixedSuffix": ".", "expectedBlank": "75 kg"}]}, {"recto": "Carte 5/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "La fleuriste a vendu 145 roses rouges, 124 roses blanches et 52 roses jaunes.", "question": "Combien de roses a-t-elle vendues ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "145", "delta": "+124", "apres": "?"}, {"kind": "partiestout", "tout": "321", "parts": ["?", "124", "52"]}, {"kind": "transformation", "avant": "?", "delta": "+145", "apres": "321"}, {"kind": "partiestout", "tout": "?", "parts": ["145", "124", "52"]}]}, {"type": "equation", "expected": "145 + 124 + 52 = 321"}, {"type": "reponse", "fixedPrefix": "Elle a vendu", "fixedSuffix": ".", "expectedBlank": "321 roses"}]}, {"recto": "Carte 6/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Une fermière a 14 poules blanches, 9 poules rousses et 7 coqs.", "question": "Combien y a-t-il de volailles en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "30", "parts": ["?", "9", "7"]}, {"kind": "transformation", "avant": "?", "delta": "+14", "apres": "30"}, {"kind": "partiestout", "tout": "?", "parts": ["14", "9", "7"]}, {"kind": "transformation", "avant": "14", "delta": "+9", "apres": "?"}]}, {"type": "equation", "expected": "14 + 9 + 7 = 30"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "30 volailles en tout"}]}, {"recto": "Carte 7/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Un libraire a vendu 12 albums, 8 romans et 15 bandes dessinées.", "question": "Combien de livres a-t-il vendus en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "35", "parts": ["?", "8", "15"]}, {"kind": "transformation", "avant": "?", "delta": "+12", "apres": "35"}, {"kind": "partiestout", "tout": "?", "parts": ["12", "8", "15"]}, {"kind": "transformation", "avant": "12", "delta": "+8", "apres": "?"}]}, {"type": "equation", "expected": "12 + 8 + 15 = 35"}, {"type": "reponse", "fixedPrefix": "Il a vendu", "fixedSuffix": ".", "expectedBlank": "35 livres en tout"}]}, {"recto": "Carte 8/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Au départ de la course à pieds du village, il y a 12 seniors et 15 espoirs et 8 juniors.", "question": "Combien de personnes participent à la course ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+15", "apres": "35"}, {"kind": "partiestout", "tout": "?", "parts": ["15", "12", "8"]}, {"kind": "partiestout", "tout": "35", "parts": ["?", "12", "8"]}, {"kind": "transformation", "avant": "15", "delta": "+12", "apres": "?"}]}, {"type": "equation", "expected": "15 + 12 + 8 = 35"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "35 participants à la course"}]}, {"recto": "Carte 9/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans un sac il y a 14 billes rouges, 9 billes bleues et 7 billes vertes.", "question": "Combien y a-t-il de billes en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "14", "delta": "+9", "apres": "?"}, {"kind": "partiestout", "tout": "30", "parts": ["?", "9", "7"]}, {"kind": "transformation", "avant": "?", "delta": "+14", "apres": "30"}, {"kind": "partiestout", "tout": "?", "parts": ["14", "9", "7"]}]}, {"type": "equation", "expected": "14 + 9 + 7 = 30"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "30 billes en tout"}]}, {"recto": "Carte 10/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Pour le goûter Léa mange 3 biscuits, 2 tranches de pain et 1 fruit.", "question": "Combien d'aliments Léa mange-t-elle ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "?", "parts": ["3", "2", "1"]}, {"kind": "partiestout", "tout": "6", "parts": ["?", "2", "1"]}, {"kind": "transformation", "avant": "?", "delta": "+3", "apres": "6"}, {"kind": "transformation", "avant": "3", "delta": "+2", "apres": "?"}]}, {"type": "equation", "expected": "3 + 2 + 1 = 6"}, {"type": "reponse", "fixedPrefix": "Léa mange", "fixedSuffix": ".", "expectedBlank": "6 aliments"}]}, {"recto": "Carte 11/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Ce matin il y a 24 enfants en CM1, 18 en CE2 et 22 en CE1.", "question": "Combien y a-t-il d'enfants en tout ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "64", "parts": ["?", "18", "22"]}, {"kind": "partiestout", "tout": "?", "parts": ["24", "18", "22"]}, {"kind": "transformation", "avant": "24", "delta": "+18", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+24", "apres": "64"}]}, {"type": "equation", "expected": "24 + 18 + 22 = 64"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "64 enfants en tout"}]}, {"recto": "Carte 12/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "La famille Dupont roule 7 heures en tout. Elle a roulé 3 heures le matin.", "question": "Combien d'heures roule-t-elle l'après-midi ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "?", "parts": ["3", "4"]}, {"kind": "transformation", "avant": "?", "delta": "+3", "apres": "7"}, {"kind": "partiestout", "tout": "7", "parts": ["3", "?"]}, {"kind": "transformation", "avant": "3", "delta": "+4", "apres": "?"}]}, {"type": "equation", "expected": "7 - 3 = 4"}, {"type": "reponse", "fixedPrefix": "Elle roule", "fixedSuffix": ".", "expectedBlank": "4 heures l'après-midi"}]}, {"recto": "Carte 13/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Madame Durand a 33 kg de bagages. Sa valise pèse 15 kg.", "question": "Combien pèse son sac ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "33", "parts": ["15", "?"]}, {"kind": "transformation", "avant": "?", "delta": "+15", "apres": "33"}, {"kind": "partiestout", "tout": "?", "parts": ["15", "18"]}, {"kind": "transformation", "avant": "15", "delta": "+18", "apres": "?"}]}, {"type": "equation", "expected": "33 - 15 = 18"}, {"type": "reponse", "fixedPrefix": "Son sac pèse", "fixedSuffix": ".", "expectedBlank": "18 kg"}]}, {"recto": "Carte 14/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Lucas monte sur la balance avec son chien. La balance affiche 33 kg. Lucas pèse 26 kg.", "question": "Combien pèse le chien de Lucas ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+26", "apres": "33"}, {"kind": "partiestout", "tout": "33", "parts": ["26", "?"]}, {"kind": "transformation", "avant": "26", "delta": "+7", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["26", "7"]}]}, {"type": "equation", "expected": "33 - 26 = 7"}, {"type": "reponse", "fixedPrefix": "Le chien de Lucas pèse", "fixedSuffix": ".", "expectedBlank": "7 kg"}]}, {"recto": "Carte 15/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Marie met 40 minutes pour aller à l'école. Elle marche 15 minutes puis prend le bus.", "question": "Combien de temps dure son trajet en bus ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "?", "parts": ["15", "25"]}, {"kind": "transformation", "avant": "?", "delta": "+15", "apres": "40"}, {"kind": "partiestout", "tout": "40", "parts": ["15", "?"]}, {"kind": "transformation", "avant": "15", "delta": "+25", "apres": "?"}]}, {"type": "equation", "expected": "40 - 15 = 25"}, {"type": "reponse", "fixedPrefix": "Le trajet en bus dure", "fixedSuffix": ".", "expectedBlank": "25 minutes"}]}, {"recto": "Carte 16/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Tristan a fait une frise de 55 cm. Sa sœur Héloïse en a aussi fait une. A eux deux, ils en ont fait 83 cm.", "question": "Quelle est la longueur de la frise d'Héloïse ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "?", "parts": ["55", "28"]}, {"kind": "transformation", "avant": "?", "delta": "+55", "apres": "83"}, {"kind": "partiestout", "tout": "83", "parts": ["55", "?"]}, {"kind": "transformation", "avant": "55", "delta": "+28", "apres": "?"}]}, {"type": "equation", "expected": "83 - 55 = 28"}, {"type": "reponse", "fixedPrefix": "La frise d'Héloïse mesure", "fixedSuffix": ".", "expectedBlank": "28 cm"}]}, {"recto": "Carte 17/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Le maître a 105 cahiers : 35 verts, 25 bleus et des cahiers rouges.", "question": "Combien de cahiers rouges le maître a-t-il ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "105", "parts": ["35", "25", "?"]}, {"kind": "partiestout", "tout": "?", "parts": ["35", "25", "45"]}, {"kind": "transformation", "avant": "?", "delta": "+35", "apres": "105"}, {"kind": "transformation", "avant": "35", "delta": "+25", "apres": "?"}]}, {"type": "equation", "expected": "35 + 25 = 60", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "105 - 60 = 45", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Le maître a", "fixedSuffix": ".", "expectedBlank": "45 cahiers rouges"}]}, {"recto": "Carte 18/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Mon panier rempli de fraises pèse 570 g en tout. Le panier vide pèse 150 g.", "question": "Quelle est la masse des fraises ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "?", "delta": "+150", "apres": "570"}, {"kind": "partiestout", "tout": "?", "parts": ["150", "420"]}, {"kind": "transformation", "avant": "150", "delta": "+420", "apres": "?"}, {"kind": "partiestout", "tout": "570", "parts": ["150", "?"]}]}, {"type": "equation", "expected": "570 - 150 = 420"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "420 g de fraises dans le panier"}]}, {"recto": "Carte 19/60", "verso": "Parties-tout — recherche d'une partie", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans le bus scolaire, il y a 41 élèves assis, dont 28 dans la rangée de droite.", "question": "Combien d'élèves y a-t-il dans la rangée de gauche ?"}, {"type": "famille", "options": [["Parties-tout", "recherche du tout"], ["Parties-tout", "recherche d'une partie"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "41", "parts": ["28", "?"]}, {"kind": "partiestout", "tout": "?", "parts": ["28", "13"]}, {"kind": "transformation", "avant": "28", "delta": "+13", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+28", "apres": "41"}]}, {"type": "equation", "expected": "41 - 28 = 13"}, {"type": "reponse", "fixedPrefix": "Il y a", "fixedSuffix": ".", "expectedBlank": "13 élèves dans la rangée de gauche"}]}, {"recto": "Carte 20/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Ce matin, la famille Dupont a déjà roulé 3 heures. Elle roule encore 4 heures de plus l'après-midi.", "question": "Combien d'heures a-t-elle roulé en tout à la fin de la journée ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "3", "delta": "+4", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["3", "4"]}, {"kind": "transformation", "avant": "?", "delta": "+4", "apres": "7"}, {"kind": "partiestout", "tout": "7", "parts": ["?", "4"]}]}, {"type": "equation", "expected": "3 + 4 = 7"}, {"type": "reponse", "fixedPrefix": "Le trajet a duré", "fixedSuffix": ".", "expectedBlank": "7 heures"}]}, {"recto": "Carte 21/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Madame Bagatelle pose sa valise sur la balance : elle affiche 15 kg. Elle y ajoute des vêtements qui pèsent 9 kg. La limite autorisée en soute est de 23 kg.", "question": "Sa valise respecte-t-elle la limite ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "?", "delta": "+9", "apres": "24"}, {"kind": "partiestout", "tout": "24", "parts": ["?", "9"]}, {"kind": "transformation", "avant": "15", "delta": "+9", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["15", "9"]}]}, {"type": "equation", "expected": "15 + 9 = 24"}, {"type": "reponse", "fixedPrefix": "autorisée (", "fixedSuffix": ".", "expectedBlank": "24 kg > 23 kg)"}]}, {"recto": "Carte 22/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Marie marche pendant 15 minutes. Elle prend ensuite le bus pendant 25 minutes de plus.", "question": "Combien de temps a-t-elle mis en tout pour aller à l'école ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "40", "parts": ["?", "25"]}, {"kind": "transformation", "avant": "15", "delta": "+25", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "+25", "apres": "40"}, {"kind": "partiestout", "tout": "?", "parts": ["15", "25"]}]}, {"type": "equation", "expected": "15 + 25 = 40"}, {"type": "reponse", "fixedPrefix": "Marie met", "fixedSuffix": ".", "expectedBlank": "40 minutes pour aller à l'école"}]}, {"recto": "Carte 23/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "J'ai déjà dépensé 75 euros pour un vélo. J'achète ensuite un casque à 15 euros de plus.", "question": "Combien ai-je dépensé en tout finalement ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"]], "correct": 2}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "?", "delta": "+15", "apres": "90"}, {"kind": "partiestout", "tout": "?", "parts": ["75", "15"]}, {"kind": "partiestout", "tout": "90", "parts": ["?", "15"]}, {"kind": "transformation", "avant": "75", "delta": "+15", "apres": "?"}]}, {"type": "equation", "expected": "75 + 15 = 90"}, {"type": "reponse", "fixedPrefix": "J'ai dépensé", "fixedSuffix": ".", "expectedBlank": "90 euros"}]}, {"recto": "Carte 24/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Maël participe à une course en sac de 30 mètres. Il a déjà parcouru 18 m.", "question": "Combien de mètres le séparent de l'arrivée ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "?", "parts": ["12", "18"]}, {"kind": "transformation", "avant": "30", "delta": "-18", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "-18", "apres": "12"}, {"kind": "partiestout", "tout": "30", "parts": ["?", "18"]}]}, {"type": "equation", "expected": "30 - 18 = 12"}, {"type": "reponse", "fixedPrefix": "Il lui reste", "fixedSuffix": ".", "expectedBlank": "12 mètres à parcourir"}]}, {"recto": "Carte 25/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "L'aquarium d'Adèle contenait 54 litres d'eau. Adèle en a retiré 18 litres.", "question": "Combien de litres d'eau reste-t-il dans l'aquarium ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "54", "delta": "-18", "apres": "?"}, {"kind": "transformation", "avant": "?", "delta": "-18", "apres": "36"}, {"kind": "partiestout", "tout": "?", "parts": ["36", "18"]}, {"kind": "partiestout", "tout": "54", "parts": ["?", "18"]}]}, {"type": "equation", "expected": "54 - 18 = 36"}, {"type": "reponse", "fixedPrefix": "Il reste", "fixedSuffix": ".", "expectedBlank": "36 L d'eau dans l'aquarium"}]}, {"recto": "Carte 26/60", "verso": "Transformation — état final inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Marie a cueilli 800 g de cerises pour faire un clafoutis. Les oiseaux en ont mangé 150 g.", "question": "Quelle masse de cerises reste-t-il à Marie ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "-150", "apres": "650"}, {"kind": "transformation", "avant": "800", "delta": "-150", "apres": "?"}, {"kind": "partiestout", "tout": "800", "parts": ["?", "150"]}, {"kind": "partiestout", "tout": "?", "parts": ["650", "150"]}]}, {"type": "equation", "expected": "800 - 150 = 650"}, {"type": "reponse", "fixedPrefix": "Il reste", "fixedSuffix": ".", "expectedBlank": "650 g de cerises à Marie"}]}, {"recto": "Carte 27/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un sac pesait 15 kg. On a retiré des affaires. Il pèse maintenant 9 kg.", "question": "Quel est le poids des affaires retirées ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "?", "delta": "-6", "apres": "9"}, {"kind": "partiestout", "tout": "?", "parts": ["9", "6"]}, {"kind": "transformation", "avant": "15", "delta": "?", "apres": "9"}, {"kind": "partiestout", "tout": "15", "parts": ["?", "6"]}]}, {"type": "equation", "expected": "15 - 9 = 6"}, {"type": "reponse", "fixedPrefix": "Les affaires retirées pesaient", "fixedSuffix": ".", "expectedBlank": "6 kg"}]}, {"recto": "Carte 28/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Léo est au 13e étage. L'ascenseur est tombé en panne.", "question": "Combien d'étages doit-il monter pour atteindre le 20e étage ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "13", "delta": "?", "apres": "20"}, {"kind": "partiestout", "tout": "?", "parts": ["13", "7"]}, {"kind": "transformation", "avant": "?", "delta": "+7", "apres": "20"}, {"kind": "partiestout", "tout": "20", "parts": ["?", "7"]}]}, {"type": "equation", "expected": "20 - 13 = 7"}, {"type": "reponse", "fixedPrefix": "Léo doit monter", "fixedSuffix": ".", "expectedBlank": "7 étages"}]}, {"recto": "Carte 29/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un bus avait 18 passagers. Il en a maintenant 25.", "question": "Combien de passagers sont montés ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "18", "delta": "?", "apres": "25"}, {"kind": "partiestout", "tout": "?", "parts": ["18", "7"]}, {"kind": "partiestout", "tout": "25", "parts": ["?", "7"]}, {"kind": "transformation", "avant": "?", "delta": "+7", "apres": "25"}]}, {"type": "equation", "expected": "25 - 18 = 7"}, {"type": "reponse", "fixedPrefix": "", "fixedSuffix": ".", "expectedBlank": "7 passagers sont montés"}]}, {"recto": "Carte 30/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Au début de la récréation, Maya avait 27 billes. A la fin, Maya a 19 billes.", "question": "Combien de billes Maya a-t-elle perdues ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "?", "parts": ["19", "8"]}, {"kind": "partiestout", "tout": "27", "parts": ["?", "8"]}, {"kind": "transformation", "avant": "27", "delta": "?", "apres": "19"}, {"kind": "transformation", "avant": "?", "delta": "-8", "apres": "19"}]}, {"type": "equation", "expected": "27 - 19 = 8"}, {"type": "reponse", "fixedPrefix": "Maya a perdu", "fixedSuffix": ".", "expectedBlank": "8 billes"}]}, {"recto": "Carte 31/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un arbre avait 28 oiseaux. Il en reste 14.", "question": "Combien d'oiseaux se sont envolés ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "?", "parts": ["14", "14"]}, {"kind": "transformation", "avant": "28", "delta": "?", "apres": "14"}, {"kind": "partiestout", "tout": "28", "parts": ["?", "14"]}, {"kind": "transformation", "avant": "?", "delta": "-14", "apres": "14"}]}, {"type": "equation", "expected": "28 - 14 = 14"}, {"type": "reponse", "fixedPrefix": "", "fixedSuffix": ".", "expectedBlank": "14 oiseaux se sont envolés"}]}, {"recto": "Carte 32/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Léa avait 30 images. Elle en a maintenant 18.", "question": "Combien d'images Léa a-t-elle données ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "transformation", "avant": "?", "delta": "-12", "apres": "18"}, {"kind": "partiestout", "tout": "?", "parts": ["18", "12"]}, {"kind": "transformation", "avant": "30", "delta": "?", "apres": "18"}, {"kind": "partiestout", "tout": "30", "parts": ["?", "12"]}]}, {"type": "equation", "expected": "30 - 18 = 12"}, {"type": "reponse", "fixedPrefix": "Léa a donné", "fixedSuffix": ".", "expectedBlank": "12 images"}]}, {"recto": "Carte 33/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Ce matin Tom avait 35 bonbons. Il en a mangé dans la journée. Maintenant, il lui reste 21 bonbons.", "question": "Combien de bonbons a-t-il mangés ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "?", "parts": ["21", "14"]}, {"kind": "partiestout", "tout": "35", "parts": ["?", "14"]}, {"kind": "transformation", "avant": "?", "delta": "-14", "apres": "21"}, {"kind": "transformation", "avant": "35", "delta": "?", "apres": "21"}]}, {"type": "equation", "expected": "35 - 21 = 14"}, {"type": "reponse", "fixedPrefix": "Il a mangé", "fixedSuffix": ".", "expectedBlank": "14 bonbons"}]}, {"recto": "Carte 34/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Une pâtissière avait confectionné 35 tartelettes. Elle en a maintenant 47.", "question": "Combien de tartelettes supplémentaires a-t-elle confectionnées ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "?", "delta": "+12", "apres": "47"}, {"kind": "partiestout", "tout": "?", "parts": ["35", "12"]}, {"kind": "partiestout", "tout": "47", "parts": ["?", "12"]}, {"kind": "transformation", "avant": "35", "delta": "?", "apres": "47"}]}, {"type": "equation", "expected": "47 - 35 = 12"}, {"type": "reponse", "fixedPrefix": "Elle a confectionné", "fixedSuffix": ".", "expectedBlank": "12 tartelettes supplémentaires"}]}, {"recto": "Carte 35/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Une couturière avait 56 boutons dans sa boîte à couture. Il lui en reste 33.", "question": "Combien de boutons a-t-elle utilisés ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "?", "parts": ["33", "23"]}, {"kind": "partiestout", "tout": "56", "parts": ["?", "23"]}, {"kind": "transformation", "avant": "?", "delta": "-23", "apres": "33"}, {"kind": "transformation", "avant": "56", "delta": "?", "apres": "33"}]}, {"type": "equation", "expected": "56 - 33 = 23"}, {"type": "reponse", "fixedPrefix": "La couturière a utilisé", "fixedSuffix": ".", "expectedBlank": "23 boutons"}]}, {"recto": "Carte 36/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Nina avait 62 points. Elle en a maintenant 44.", "question": "Combien de points Nina a-t-elle perdus ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "62", "parts": ["?", "18"]}, {"kind": "transformation", "avant": "?", "delta": "-18", "apres": "44"}, {"kind": "partiestout", "tout": "?", "parts": ["44", "18"]}, {"kind": "transformation", "avant": "62", "delta": "?", "apres": "44"}]}, {"type": "equation", "expected": "62 - 44 = 18"}, {"type": "reponse", "fixedPrefix": "Nina a perdu", "fixedSuffix": ".", "expectedBlank": "18 points"}]}, {"recto": "Carte 37/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Pour la sortie à vélo, nous devons faire 75 km. Nous avons déjà fait 40 km.", "question": "Quelle distance devons-nous encore faire ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+35", "apres": "75"}, {"kind": "transformation", "avant": "40", "delta": "?", "apres": "75"}, {"kind": "partiestout", "tout": "?", "parts": ["40", "35"]}, {"kind": "partiestout", "tout": "75", "parts": ["?", "35"]}]}, {"type": "equation", "expected": "75 - 40 = 35"}, {"type": "reponse", "fixedPrefix": "Nous devons encore faire", "fixedSuffix": ".", "expectedBlank": "35 km"}]}, {"recto": "Carte 38/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un jardinier avait 45 plants. Il en a maintenant 75.", "question": "Combien de plants a-t-il plantés ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "75", "parts": ["?", "30"]}, {"kind": "partiestout", "tout": "?", "parts": ["45", "30"]}, {"kind": "transformation", "avant": "45", "delta": "?", "apres": "75"}, {"kind": "transformation", "avant": "?", "delta": "+30", "apres": "75"}]}, {"type": "equation", "expected": "75 - 45 = 30"}, {"type": "reponse", "fixedPrefix": "Il a planté", "fixedSuffix": ".", "expectedBlank": "30 plants"}]}, {"recto": "Carte 39/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un marchand avait 80 oranges. Il en a maintenant 45.", "question": "Combien d'oranges a-t-il vendues ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "80", "delta": "?", "apres": "45"}, {"kind": "transformation", "avant": "?", "delta": "-35", "apres": "45"}, {"kind": "partiestout", "tout": "?", "parts": ["45", "35"]}, {"kind": "partiestout", "tout": "80", "parts": ["?", "35"]}]}, {"type": "equation", "expected": "80 - 45 = 35"}, {"type": "reponse", "fixedPrefix": "Il a vendu", "fixedSuffix": ".", "expectedBlank": "35 oranges"}]}, {"recto": "Carte 40/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Toute la famille a passé la journée à la foire. Les parents avaient pris 100 €. Le soir, il leur reste 18 €.", "question": "Combien ont-ils dépensé à la foire ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "100", "delta": "?", "apres": "18"}, {"kind": "partiestout", "tout": "100", "parts": ["?", "82"]}, {"kind": "transformation", "avant": "?", "delta": "-82", "apres": "18"}, {"kind": "partiestout", "tout": "?", "parts": ["18", "82"]}]}, {"type": "equation", "expected": "100 - 18 = 82"}, {"type": "reponse", "fixedPrefix": "Ils ont dépensé", "fixedSuffix": ".", "expectedBlank": "82 euros"}]}, {"recto": "Carte 41/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Une tirelire contenait 120 €. Elle en contient maintenant 170 €.", "question": "Combien d'euros a-t-on ajoutés ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "?", "parts": ["120", "50"]}, {"kind": "transformation", "avant": "120", "delta": "?", "apres": "170"}, {"kind": "partiestout", "tout": "170", "parts": ["?", "50"]}, {"kind": "transformation", "avant": "?", "delta": "+50", "apres": "170"}]}, {"type": "equation", "expected": "170 - 120 = 50"}, {"type": "reponse", "fixedPrefix": "On a ajouté", "fixedSuffix": ".", "expectedBlank": "50 €"}]}, {"recto": "Carte 42/60", "verso": "Transformation — écart inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Des chaussures coûtaient 160 €. Elles coûtent maintenant 215 €.", "question": "De combien ont-elles augmenté ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 2}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "215", "parts": ["?", "55"]}, {"kind": "partiestout", "tout": "?", "parts": ["160", "55"]}, {"kind": "transformation", "avant": "160", "delta": "?", "apres": "215"}, {"kind": "transformation", "avant": "?", "delta": "+55", "apres": "215"}]}, {"type": "equation", "expected": "215 - 160 = 55"}, {"type": "reponse", "fixedPrefix": "Elles ont augmenté de", "fixedSuffix": ".", "expectedBlank": "55 euros"}]}, {"recto": "Carte 43/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Léna a maintenant 13 autocollants. Elle en a gagné 5 lors d'un jeu-concours.", "question": "Combien Léna avait-elle d'autocollants avant le jeu-concours ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "13", "parts": ["?", "5"]}, {"kind": "transformation", "avant": "8", "delta": "?", "apres": "13"}, {"kind": "transformation", "avant": "?", "delta": "+5", "apres": "13"}, {"kind": "partiestout", "tout": "?", "parts": ["8", "5"]}]}, {"type": "equation", "expected": "13 - 5 = 8"}, {"type": "reponse", "fixedPrefix": "Avant le jeu-concours, Léna avait", "fixedSuffix": ".", "expectedBlank": "8 autocollants"}]}, {"recto": "Carte 44/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Samuel part à l'école avec des billes. Dans la journée, il en gagne 8. Le soir, il en a 16.", "question": "Combien de billes avait-il le matin ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "16", "parts": ["?", "8"]}, {"kind": "transformation", "avant": "?", "delta": "+8", "apres": "16"}, {"kind": "transformation", "avant": "8", "delta": "?", "apres": "16"}, {"kind": "partiestout", "tout": "?", "parts": ["8", "8"]}]}, {"type": "equation", "expected": "16 - 8 = 8"}, {"type": "reponse", "fixedPrefix": "Il avait", "fixedSuffix": ".", "expectedBlank": "8 billes le matin"}]}, {"recto": "Carte 45/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Nathan a maintenant 15 cartes de collection. Il en a donné 9 à son cousin.", "question": "Combien Nathan avait-il de cartes avant de les donner ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "24", "parts": ["?", "9"]}, {"kind": "transformation", "avant": "24", "delta": "?", "apres": "15"}, {"kind": "transformation", "avant": "?", "delta": "-9", "apres": "15"}, {"kind": "partiestout", "tout": "?", "parts": ["15", "9"]}]}, {"type": "equation", "expected": "15 + 9 = 24"}, {"type": "reponse", "fixedPrefix": "Nathan avait", "fixedSuffix": ".", "expectedBlank": "24 cartes avant d'en donner"}]}, {"recto": "Carte 46/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans le car, il y a des personnes. Au premier arrêt, 8 personnes descendent. Quand le car repart, il y a 17 personnes.", "question": "Combien de personnes étaient dans le car au début ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "transformation", "avant": "25", "delta": "?", "apres": "17"}, {"kind": "partiestout", "tout": "25", "parts": ["?", "8"]}, {"kind": "partiestout", "tout": "?", "parts": ["17", "8"]}, {"kind": "transformation", "avant": "?", "delta": "-8", "apres": "17"}]}, {"type": "equation", "expected": "17 + 8 = 25"}, {"type": "reponse", "fixedPrefix": "Il y avait", "fixedSuffix": ".", "expectedBlank": "25 personnes au début"}]}, {"recto": "Carte 47/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Il reste 14 oiseaux dans l'arbre. 13 se sont envolés.", "question": "Combien y avait-il d'oiseaux dans l'arbre au départ ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"]], "correct": 1}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "?", "delta": "-13", "apres": "14"}, {"kind": "partiestout", "tout": "?", "parts": ["14", "13"]}, {"kind": "partiestout", "tout": "27", "parts": ["?", "13"]}, {"kind": "transformation", "avant": "27", "delta": "?", "apres": "14"}]}, {"type": "equation", "expected": "14 + 13 = 27"}, {"type": "reponse", "fixedPrefix": "Il y avait", "fixedSuffix": ".", "expectedBlank": "27 oiseaux au départ"}]}, {"recto": "Carte 48/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un marchand de poissons compte 41 poissons sur son étal en fin de matinée. Il en a vendu 13.", "question": "Combien de poissons avait-il sur son étal au début de la matinée ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 0}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "?", "parts": ["41", "13"]}, {"kind": "transformation", "avant": "54", "delta": "?", "apres": "41"}, {"kind": "partiestout", "tout": "54", "parts": ["?", "13"]}, {"kind": "transformation", "avant": "?", "delta": "-13", "apres": "41"}]}, {"type": "equation", "expected": "41 + 13 = 54"}, {"type": "reponse", "fixedPrefix": "Il avait", "fixedSuffix": ".", "expectedBlank": "54 poissons avant"}]}, {"recto": "Carte 49/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Maman est allée au marché où elle a fait 23 € d'achats. Elle revient avec 27 €.", "question": "Combien d'argent avait-elle pris ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "50", "delta": "?", "apres": "27"}, {"kind": "transformation", "avant": "?", "delta": "-23", "apres": "27"}, {"kind": "partiestout", "tout": "?", "parts": ["27", "23"]}, {"kind": "partiestout", "tout": "50", "parts": ["?", "23"]}]}, {"type": "equation", "expected": "27 + 23 = 50"}, {"type": "reponse", "fixedPrefix": "Elle avait pris", "fixedSuffix": ".", "expectedBlank": "50 euros"}]}, {"recto": "Carte 50/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un épicier compte 29 pommes dans sa caisse en fin de journée. Il en a vendu 31.", "question": "Combien avait-il de pommes avant l'ouverture du magasin ?"}, {"type": "famille", "options": [["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"]], "correct": 0}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "60", "parts": ["?", "31"]}, {"kind": "transformation", "avant": "60", "delta": "?", "apres": "29"}, {"kind": "transformation", "avant": "?", "delta": "-31", "apres": "29"}, {"kind": "partiestout", "tout": "?", "parts": ["29", "31"]}]}, {"type": "equation", "expected": "31 + 29 = 60"}, {"type": "reponse", "fixedPrefix": "Il avait", "fixedSuffix": ".", "expectedBlank": "60 pommes avant l'ouverture"}]}, {"recto": "Carte 51/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Mme Fairise a dépensé 24 euros au marché. Il lui reste 38 euros dans son porte-monnaie.", "question": "Combien avait-elle en partant ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "62", "delta": "?", "apres": "38"}, {"kind": "transformation", "avant": "?", "delta": "-24", "apres": "38"}, {"kind": "partiestout", "tout": "62", "parts": ["?", "24"]}, {"kind": "partiestout", "tout": "?", "parts": ["38", "24"]}]}, {"type": "equation", "expected": "38 + 24 = 62"}, {"type": "reponse", "fixedPrefix": "Elle avait", "fixedSuffix": ".", "expectedBlank": "62 euros en partant"}]}, {"recto": "Carte 52/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Le chien de Yousra pèse 63 kg. C'est 7 kg de plus qu'il y a 2 mois.", "question": "Combien pesait-il avant ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 1}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "63", "parts": ["?", "7"]}, {"kind": "transformation", "avant": "?", "delta": "+7", "apres": "63"}, {"kind": "transformation", "avant": "56", "delta": "?", "apres": "63"}, {"kind": "partiestout", "tout": "?", "parts": ["56", "7"]}]}, {"type": "equation", "expected": "63 - 7 = 56"}, {"type": "reponse", "fixedPrefix": "Il pesait", "fixedSuffix": ".", "expectedBlank": "56 kg avant"}]}, {"recto": "Carte 53/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Zoé avait des billes. Elle en perd 12. Il lui reste 60 billes.", "question": "Combien de billes Zoé avait-elle au début ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "?", "delta": "-12", "apres": "60"}, {"kind": "partiestout", "tout": "?", "parts": ["60", "12"]}, {"kind": "partiestout", "tout": "72", "parts": ["?", "12"]}, {"kind": "transformation", "avant": "72", "delta": "?", "apres": "60"}]}, {"type": "equation", "expected": "60 + 12 = 72"}, {"type": "reponse", "fixedPrefix": "Zoé avait", "fixedSuffix": ".", "expectedBlank": "72 billes au début"}]}, {"recto": "Carte 54/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Le marchand de glaces a vendu 80 glaces. Ce soir, il lui reste 20 glaces.", "question": "Combien de glaces avait-il à l'ouverture ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "écart inconnu"], ["Transformation", "état initial inconnu"]], "correct": 2}, {"type": "schema", "correct": 1, "options": [{"kind": "partiestout", "tout": "100", "parts": ["?", "80"]}, {"kind": "transformation", "avant": "?", "delta": "-80", "apres": "20"}, {"kind": "partiestout", "tout": "?", "parts": ["20", "80"]}, {"kind": "transformation", "avant": "100", "delta": "?", "apres": "20"}]}, {"type": "equation", "expected": "80 + 20 = 100"}, {"type": "reponse", "fixedPrefix": "Il avait", "fixedSuffix": ".", "expectedBlank": "100 glaces à l'ouverture"}]}, {"recto": "Carte 55/60", "verso": "Parties-tout — recherche du tout", "rappel": false, "items": [{"type": "enonce", "enonce": "Une famille dépense 75 € d'entrées et 20 € de souvenirs. Il lui reste 45 €.", "question": "Combien d'argent avait-elle au départ ?"}, {"type": "famille", "options": [["Parties-tout", "recherche d'une partie"], ["Parties-tout", "recherche du tout"]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "140", "parts": ["?", "20", "45"]}, {"kind": "transformation", "avant": "?", "delta": "+75", "apres": "140"}, {"kind": "transformation", "avant": "75", "delta": "+20", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["75", "20", "45"]}]}, {"type": "equation", "expected": "75 + 20 + 45 = 140"}, {"type": "reponse", "fixedPrefix": "Elle avait", "fixedSuffix": ".", "expectedBlank": "140 euros au départ"}]}, {"recto": "Carte 56/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "Un réservoir contenait une certaine quantité d'eau. Alice en a ajouté 38 litres. Il y a maintenant 40 litres d'eau dans le réservoir.", "question": "Combien de litres d'eau y avait-il dans le réservoir au début ?"}, {"type": "famille", "options": [["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"], ["Transformation", "écart inconnu"]], "correct": 1}, {"type": "schema", "correct": 2, "options": [{"kind": "partiestout", "tout": "?", "parts": ["2", "38"]}, {"kind": "transformation", "avant": "2", "delta": "?", "apres": "40"}, {"kind": "transformation", "avant": "?", "delta": "+38", "apres": "40"}, {"kind": "partiestout", "tout": "40", "parts": ["?", "38"]}]}, {"type": "equation", "expected": "40 - 38 = 2"}, {"type": "reponse", "fixedPrefix": "Il y avait", "fixedSuffix": ".", "expectedBlank": "2 litres d'eau dans le réservoir au départ"}]}, {"recto": "Carte 57/60", "verso": "Transformation — état initial inconnu", "rappel": false, "items": [{"type": "enonce", "enonce": "L'enquête du lieutenant Marc a permis d'ajouter 6 suspects aux individus déjà identifiés. Il y a maintenant 21 suspects.", "question": "Combien y avait-il de suspects au début de l'enquête ?"}, {"type": "famille", "options": [["Transformation", "écart inconnu"], ["Transformation", "état final inconnu"], ["Transformation", "état initial inconnu"]], "correct": 2}, {"type": "schema", "correct": 0, "options": [{"kind": "transformation", "avant": "?", "delta": "+6", "apres": "21"}, {"kind": "partiestout", "tout": "21", "parts": ["?", "6"]}, {"kind": "partiestout", "tout": "?", "parts": ["15", "6"]}, {"kind": "transformation", "avant": "15", "delta": "?", "apres": "21"}]}, {"type": "equation", "expected": "21 - 6 = 15"}, {"type": "reponse", "fixedPrefix": "Il y avait", "fixedSuffix": ".", "expectedBlank": "15 suspects au début de l'enquête"}]}, {"recto": "Carte 58/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans la classe d'Iris il y a 11 filles et 7 garçons. 3 nouveaux élèves arrivent.", "question": "Combien d'élèves y a-t-il dans la classe maintenant ?"}, {"type": "famille", "options": [["Mixte", ""], ["Parties-tout", ""]], "correct": 0}, {"type": "schema", "correct": 1, "options": [{"kind": "transformation", "avant": "?", "delta": "+11", "apres": "21"}, {"kind": "partiestout", "tout": "?", "parts": ["11", "7", "3"]}, {"kind": "partiestout", "tout": "21", "parts": ["?", "7", "3"]}, {"kind": "transformation", "avant": "11", "delta": "+7", "apres": "?"}]}, {"type": "equation", "expected": "11 + 7 = 18", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "18 + 3 = 21", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Il y a maintenant", "fixedSuffix": ".", "expectedBlank": "21 élèves"}]}, {"recto": "Carte 59/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Dans le parc il y a 25 chênes et 30 hêtres. La tempête en arrache 5.", "question": "Combien d'arbres reste-t-il après la tempête ?"}, {"type": "famille", "options": [["Parties-tout", ""], ["Mixte", ""]], "correct": 1}, {"type": "schema", "correct": 3, "options": [{"kind": "partiestout", "tout": "50", "parts": ["?", "30", "5"]}, {"kind": "transformation", "avant": "?", "delta": "+25", "apres": "50"}, {"kind": "transformation", "avant": "25", "delta": "+30", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["25", "30", "5"]}]}, {"type": "equation", "expected": "25 + 30 = 55", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "55 - 5 = 50", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Il reste", "fixedSuffix": ".", "expectedBlank": "50 arbres après la tempête"}]}, {"recto": "Carte 60/60", "verso": "Mixte — problème à deux étapes", "rappel": false, "items": [{"type": "enonce", "enonce": "Léa a besoin de 8 œufs pour faire sa pâte à crêpes. Elle achète 24 œufs au magasin, mais sur le chemin du retour elle en casse 2.", "question": "Après avoir fait sa pâte à crêpes, combien d'œufs reste-t-il à Léa ?"}, {"type": "famille", "options": [["Mixte", ""], ["Parties-tout", ""]], "correct": 0}, {"type": "schema", "correct": 0, "options": [{"kind": "partiestout", "tout": "24", "parts": ["2", "8", "?"]}, {"kind": "transformation", "avant": "?", "delta": "+2", "apres": "24"}, {"kind": "transformation", "avant": "2", "delta": "+8", "apres": "?"}, {"kind": "partiestout", "tout": "?", "parts": ["2", "8", "14"]}]}, {"type": "equation", "expected": "24 - 2 = 22", "label": "Calcul (étape 1)"}, {"type": "equation", "expected": "22 - 8 = 14", "label": "Calcul (étape 2)"}, {"type": "reponse", "fixedPrefix": "Il reste", "fixedSuffix": ".", "expectedBlank": "14 œufs à Léa"}]}];
+const ITEM_LABEL = "ÉTAPE";
+const PAGE_TITLE = "Ceinture VERTE";
+const TEACHER_EMAIL = "euryale_tsipora@protonmail.me";
+const TEACHER_PIN = "0616";
+const EMAIL_ENABLED = false; // desactive temporairement l'ouverture de la messagerie en fin de seance ; le PDF continue d'etre genere et telecharge normalement
+const SESSION_STORAGE_KEY = 'calcpose_sessionLog';
+const NAME_STORAGE_KEY = 'calcpose_studentName';
+let cardIdx = 0;
+let showingCorrection = false;
+let teacherMode = false;
+let hasAttemptedCurrent = false;
+
+// La seance est memorisee dans le navigateur (localStorage) pour survivre a un
+// changement de page (une ceinture = un fichier different) : sans ca, tout ce
+// qui a ete fait sur une ceinture visitee avant celle-ci serait perdu au moment
+// du PDF final. Repli silencieux sur une seance vide si localStorage est
+// indisponible (navigation privee, restrictions navigateur...).
+function chargerSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+function sauverSession(){
+  try { localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionLog)); } catch(e) {}
+}
+function chargerNomEleve(){
+  const injecte = "";
+  if(injecte) return injecte; // fiche personnalisee : le nom est deja connu, prioritaire
+  try { return localStorage.getItem(NAME_STORAGE_KEY) || ""; } catch(e) { return ""; }
+}
+function sauverNomEleve(){
+  try { localStorage.setItem(NAME_STORAGE_KEY, studentName); } catch(e) {}
+}
+function viderSession(){
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); localStorage.removeItem(NAME_STORAGE_KEY); } catch(e) {}
+  sessionLog = [];
+}
+
+let sessionLog = chargerSession(); // {belt, carte, ok, results}
+let studentName = chargerNomEleve();
+
+function updateSessionScore(){
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  document.getElementById('session-score').textContent = `Séance : ${ok}/${total}`;
+}
+
+function render(){
+  showingCorrection = false;
+  hasAttemptedCurrent = false;
+  updateCalcArea();
+  document.getElementById('progress-btn').textContent = `Carte ${cardIdx+1} / ${CARDS.length}`;
+}
+
+function updateCalcArea(){
+  const card = CARDS[cardIdx];
+  const beltTag = card.belt_name
+    ? `<span class="belt-origin-tag" style="background:${card.belt_color};">${card.belt_name}</span>`
+    : '';
+  document.getElementById('carte-indicator').innerHTML =
+    `CARTE ${cardIdx+1}` + beltTag + (card.rappel ? '<span class="rappel-tag">(rappel)</span>' : '');
+  document.getElementById('palier-label').innerHTML = showingCorrection ? card.verso : card.recto;
+  document.getElementById('calc-area').innerHTML = renderCard(card.items, showingCorrection);
+  document.getElementById('feedback-msg').textContent = '';
+  document.getElementById('feedback-msg').className = '';
+  document.getElementById('btn-verifier').style.display = showingCorrection ? 'none' : '';
+  refreshCorrectionButton();
+}
+
+function refreshCorrectionButton(){
+  const btnCorrection = document.getElementById('btn-correction');
+  const locked = !teacherMode && !hasAttemptedCurrent && !showingCorrection;
+  btnCorrection.disabled = locked;
+  btnCorrection.title = locked ? "Vérifie d'abord ta réponse pour débloquer la correction" : "";
+  btnCorrection.textContent = locked
+    ? '🔒 Vérifie ta réponse d\'abord'
+    : (showingCorrection ? 'Retour à l\'énoncé (espace)' : 'Voir la correction (espace)');
+}
+
+function verifierReponse(){
+  const card = CARDS[cardIdx];
+  if(typeof checkCard === 'function'){
+    const results = checkCard(card.items); // tableau de booleens, un par calcul de la carte
+    const allOk = results.every(r => r);
+    const msg = document.getElementById('feedback-msg');
+    if(allOk){
+      msg.textContent = 'Bravo, tout est juste !';
+    } else if(results.some(r => r)){
+      const nOk = results.filter(r => r).length;
+      msg.textContent = `${nOk} sur ${results.length} sont justes — corrige et réessaie.`;
+    } else {
+      msg.textContent = 'Pas encore juste — corrige et réessaie.';
+    }
+    msg.className = allOk ? 'ok' : 'ko';
+    results.forEach((ok, i) => {
+      const label = document.getElementById(`item-label-${i}`);
+      if(label){
+        label.classList.remove('correct', 'incorrect');
+        label.classList.add(ok ? 'correct' : 'incorrect');
+      }
+    });
+    hasAttemptedCurrent = true;
+    const beltLabel = card.belt_name || PAGE_TITLE;
+    sessionLog.push({belt: beltLabel, carte: cardIdx+1, ok: allOk, results: results});
+    sauverSession();
+    updateSessionScore();
+    refreshCorrectionButton();
+  }
+}
+
+function toggleTeacherMode(){
+  if(teacherMode){
+    teacherMode = false;
+    document.getElementById('btn-mode').textContent = '👤 Élève';
+    document.getElementById('btn-mode').classList.remove('teacher');
+  } else {
+    const code = prompt("Code enseignant :");
+    if(code === null) return;
+    if(code === TEACHER_PIN){
+      teacherMode = true;
+      document.getElementById('btn-mode').textContent = '🔓 Enseignant';
+      document.getElementById('btn-mode').classList.add('teacher');
+    } else {
+      alert("Code incorrect.");
+      return;
+    }
+  }
+  refreshCorrectionButton();
+}
+
+const LETTRES = ['A','B','C','D','E','F'];
+
+function terminerSeance(){
+  if(sessionLog.length === 0){
+    alert("Aucune vérification n'a encore été faite pendant cette séance.");
+    return;
+  }
+  if(!studentName){
+    const saisie = prompt("Quel est ton prénom ?");
+    if(!saisie){ alert("Le prénom est nécessaire pour enregistrer la séance."); return; }
+    studentName = saisie.trim();
+    sauverNomEleve();
+  }
+
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  const dateStr = new Date().toLocaleDateString('fr-FR');
+  const heureStr = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  const titreComplet = `${studentName} — ${dateStr}`;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`Séance de calcul posé — ${titreComplet}`, 14, 18);
+  doc.setFontSize(11);
+  doc.text(`Date : ${dateStr} à ${heureStr}`, 14, 28);
+  doc.text(`Score de la séance : ${ok} / ${total}`, 14, 36);
+  doc.text("Détail (toutes ceintures travaillées pendant la séance) :", 14, 46);
+  let y = 54;
+  sessionLog.forEach((e, i) => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    const detail = e.results
+      ? e.results.map((r, k) => `${LETTRES[k] || (k+1)}:${r ? 'juste' : 'à revoir'}`).join('  ')
+      : (e.ok ? 'juste' : 'à revoir');
+    doc.text(`${i+1}. ${e.belt} — Carte ${e.carte} — ${detail}`, 18, y);
+    y += 7;
+  });
+
+  const slug = studentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,'_');
+  const fname = `seance_${slug}_${dateStr.replace(/\//g,'-')}.pdf`;
+  doc.save(fname);
+
+  if(EMAIL_ENABLED){
+    const sujet = encodeURIComponent(`Séance calcul posé — ${titreComplet}`);
+    const corps = encodeURIComponent(
+      `Bonjour,\n\nVoici le résumé de séance de ${studentName} du ${dateStr} à ${heureStr}.\n` +
+      `Score : ${ok}/${total}.\n\nLe fichier "${fname}" vient d'être téléchargé — merci de le joindre à cet e-mail avant de l'envoyer.\n`
+    );
+    const mailto = `mailto:${TEACHER_EMAIL}?subject=${sujet}&body=${corps}`;
+    window.location.href = mailto;
+  } else {
+    alert(`Séance enregistrée ! Le fichier "${fname}" vient d'être téléchargé — tu peux le transmettre à l'enseignant(e) si tu le souhaites.`);
+  }
+
+  viderSession();
+  studentName = "";
+  updateSessionScore();
+}
+
+function toggleCorrection(){
+  if(!teacherMode && !hasAttemptedCurrent && !showingCorrection) return; // verrouille tant que non tente
+  showingCorrection = !showingCorrection;
+  updateCalcArea();
+}
+function go(delta){
+  cardIdx = (cardIdx + delta + CARDS.length) % CARDS.length;
+  render();
+}
+function goTo(n){
+  cardIdx = Math.max(0, Math.min(CARDS.length-1, n-1));
+  render();
+  closePicker();
+}
+
+function openPicker(){
+  const grid = document.getElementById('picker-grid');
+  grid.innerHTML = '';
+  CARDS.forEach((card, i) => {
+    const b = document.createElement('button');
+    b.textContent = i+1;
+    if(i === cardIdx) b.classList.add('current');
+    b.onclick = () => goTo(i+1);
+    grid.appendChild(b);
+  });
+  document.getElementById('overlay').classList.add('show');
+}
+function closePicker(){ document.getElementById('overlay').classList.remove('show'); }
+
+document.getElementById('progress-btn').onclick = openPicker;
+document.getElementById('picker-close').onclick = closePicker;
+document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closePicker(); };
+document.getElementById('picker-go').onclick = ()=>{
+  const v = parseInt(document.getElementById('picker-input').value);
+  if(v) goTo(v);
+};
+document.getElementById('prev').onclick = ()=>go(-1);
+document.getElementById('next').onclick = ()=>go(1);
+document.getElementById('btn-correction').onclick = toggleCorrection;
+document.getElementById('btn-verifier').onclick = verifierReponse;
+document.getElementById('btn-fin-seance').onclick = terminerSeance;
+document.getElementById('btn-mode').onclick = toggleTeacherMode;
+document.addEventListener('keydown', (e)=>{
+  if(document.getElementById('overlay').classList.contains('show')) return;
+  if(e.key === 'ArrowRight') go(1);
+  else if(e.key === 'ArrowLeft') go(-1);
+  else if(e.key === ' '){ e.preventDefault(); toggleCorrection(); }
+});
+
+render();
+updateSessionScore();
+</script>
+</body>
+</html>
